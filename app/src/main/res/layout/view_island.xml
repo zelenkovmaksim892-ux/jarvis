@@ -160,16 +160,21 @@
                     tools:ignore="HardcodedText" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/approvalDetails"
+            <ScrollView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="120dp"
                 android:layout_marginTop="8dp"
-                android:textColor="#D1D1D6"
-                android:textSize="13sp"
-                android:maxLines="6"
-                android:ellipsize="end"
-                tools:text="Открыть WhatsApp и ввести текст сообщения" />
+                android:fillViewport="false">
+
+                <TextView
+                    android:id="@+id/approvalDetails"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#D1D1D6"
+                    android:textSize="13sp"
+                    android:textIsSelectable="true"
+                    tools:text="Открыть WhatsApp и ввести текст сообщения" />
+            </ScrollView>
 
             <LinearLayout
                 android:layout_width="match_parent"
