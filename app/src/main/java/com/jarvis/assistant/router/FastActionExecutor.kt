@@ -428,11 +428,11 @@ class FastActionExecutor(
         }
         val number = ContactMatcher.bestNumber(contact) ?: return Result(true, false, "${contact.name} has no phone number saved.")
 
-        // A call is never placed on a guess: sound-alike matches are always confirmed, and so is everything else unless
-        // the user turned confirmations off. Without a way to ask, the dialer is opened instead of calling.
+        // Fast commands have no visible per-contact second-confirmation screen yet.
+        // Therefore they may only open the dialer; the user places the call manually in Android.
+        if (asker == null) return dialInstead(contact, number)
         val weak = match.how in setOf("fuzzy", "sound", "prefix")
         if (settings.confirmSensitive || weak) {
-            if (asker == null) return dialInstead(contact, number)
             val answer = asker("Call ${ContactMatcher.describe(contact, number)}?")
             if (!SensitiveActions.isYes(answer)) return Result(true, true, "Okay, I won't call.")
         }
