@@ -167,6 +167,8 @@ class FastActionExecutor(
             m.notInstalled?.let { return Result(true, false, "${it.replaceFirstChar { c -> c.uppercase() }} isn't installed on this phone.") }
             return Result(false, false, "")
         }
+        // Never launch an approximate sound-alike match without an explicit visible approval path.
+        if (m.how == "sound" && asker == null) return Result(true, false, "I am not sure which app you meant. Please name it exactly.")
         // A match that only "sounds like" the name is confirmed first. A yes teaches Jarvis the name for next time.
         if (m.how == "sound" && asker != null) {
             val answer = asker("Did you mean ${entry.label}?")
