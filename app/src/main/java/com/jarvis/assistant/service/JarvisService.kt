@@ -758,7 +758,7 @@ class JarvisService : Service() {
                         }
                     } else {
                         val command = fast!!
-                        if (!hostFor(id).approveAction("Команда телефона", "Выполнить команду: ${task}.\nТип операции: ${command.javaClass.simpleName}. Разрешение только на один запуск.")) {
+                        if (!hostFor(id).approveAction("Команда телефона", "Распознанная команда: ${command}.\nИсходный запрос: ${task}. Разрешение только на один запуск.")) {
                             FastActionExecutor.Result(true, false, "Действие запрещено.")
                         } else withUi(type == TaskType.PHONE, busy) {
                             if (needsUnlock(command)) waitForUnlock(id)
