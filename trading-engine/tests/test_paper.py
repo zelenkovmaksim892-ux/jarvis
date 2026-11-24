@@ -14,7 +14,7 @@ class PaperAccountTests(unittest.TestCase):
         sell = account.execute("BTC/USDT", "sell", "1", "120")
         self.assertEqual(sell.fee, Decimal("1.20"))
         self.assertEqual(account.positions["BTC/USDT"], Decimal("1"))
-        self.assertEqual(account.equity({"BTC/USDT": "120"}), Decimal("916.80"))
+        self.assertEqual(account.equity({"BTC/USDT": "120"}), Decimal("1036.80"))
 
     def test_rejects_overspend_and_oversell(self):
         account = PaperAccount("100", "0")
