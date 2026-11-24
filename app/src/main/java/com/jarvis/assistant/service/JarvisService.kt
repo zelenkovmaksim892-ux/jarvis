@@ -983,7 +983,7 @@ class JarvisService : Service() {
         }
         override fun approveAction(title: String, details: String): Boolean {
             val latch = CountDownLatch(1)
-            @Volatile var allowed = false
+            var allowed = false
             main.post {
                 if (destroyed || isStale(id) || !settings.showIsland) {
                     latch.countDown()
