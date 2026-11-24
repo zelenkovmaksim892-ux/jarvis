@@ -51,6 +51,9 @@ class JarvisAccessibilityService : AccessibilityService() {
 
     fun readScreen(maxElements: Int = 300): ScreenSnapshot = ScreenReader.capture(this, maxElements).also { snapshot = it }
 
+    /** Last screen snapshot sent to the agent, used to reject stale action approvals. */
+    fun currentSnapshot(): ScreenSnapshot? = snapshot
+
     /** The text or description of element [id] on the last screen read ("" if unknown). */
     fun labelOf(id: Int): String {
         val n = snapshot?.elements?.get(id) ?: return ""
