@@ -163,13 +163,17 @@ class PhoneAgent(
                 }
                 if (host.isCancelled) return Outcome.Done(AgentResult(false, "Okay, I stopped."))
                 if (call.name !in setOf("wait", "ask_user")) {
+                    val screenBeforeApproval = a11y.readScreen(300)
                     val details = approvalDescription(call, a11y)
                     val firstApproval = host.approveAction(call.name.replace('_', ' ').replaceFirstChar { it.uppercase() }, details)
                     val highRisk = call.name == "tap" && Regex("(?i)\\b(send|call|dial|pay|payment|transfer|delete|purchase|buy|publish|submit|confirm)\\b|отправ|позвон|оплат|перевод|удал|покуп|публикац").containsMatchIn(details)
                     val approved = firstApproval && (!highRisk || host.approveAction("Повторное подтверждение", "Это потенциально необратимое действие. Ещё раз проверь детали и подтверди: $details"))
-                    if (!approved) {
+                    val screenAfterApproval = if (approved) a11y.readScreen(300) else screenBeforeApproval
+                    val sameScreen = screenBeforeApproval.foregroundPackage == screenAfterApproval.foregroundPackage &&
+                        screenBeforeApproval.text == screenAfterApproval.text
+                    if (!approved || !sameScreen) {
                         if (host.isCancelled) return Outcome.Done(AgentResult(false, "Остановлено."))
-                        results += ToolOutput(call.id, "The user denied this action. Do not retry it or use another tool to perform the same action.")
+                        results += ToolOutput(call.id, if (!sameScreen) "The screen changed while waiting for approval. The action was cancelled; inspect the current screen and ask for approval again." else "The user denied this action. Do not retry it or use another tool to perform the same action.")
                         continue
                     }
                 }
