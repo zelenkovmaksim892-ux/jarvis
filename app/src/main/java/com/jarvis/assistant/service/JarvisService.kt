@@ -749,7 +749,12 @@ class JarvisService : Service() {
                 val busy = FastActionExecutor.Result(true, false, "I'm still finishing the previous task. Please try again in a moment.")
                 val outcome = try {
                     if (memoryIntent != null) {
-                        if (!hostFor(id).approveAction("Изменение памяти", "Jarvis собирается изменить локальную память: ${memoryIntent}. Разрешение только на эту операцию.")) {
+                        val approvalHost = hostFor(id)
+                        val details = "Jarvis собирается изменить локальную память: ${memoryIntent}. Разрешение только на эту операцию."
+                        val firstApproval = approvalHost.approveAction("Изменение памяти", details)
+                        val approved = firstApproval && (memoryIntent !is MemoryIntent.Forget ||
+                            approvalHost.approveAction("Повторное подтверждение удаления", "Будут удалены сохранённые сведения: ${memoryIntent.what}. Это действие может быть необратимым."))
+                        if (!approved) {
                             FastActionExecutor.Result(true, false, "Действие запрещено.")
                         } else {
                             fastActions.handleMemory(memoryIntent).also {
