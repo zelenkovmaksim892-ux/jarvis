@@ -174,7 +174,7 @@ class PhoneAgent(
                     }
                 }
                 results += execute(a11y, call)
-                actionLog += "${call.name} ${call.arguments}".take(200)
+                actionLog += if (call.name == "type_text") "type_text [text omitted]" else "${call.name} ${call.arguments}".take(200)
             }
             outputs = results
         }
