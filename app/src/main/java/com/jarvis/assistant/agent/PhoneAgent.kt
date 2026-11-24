@@ -164,13 +164,13 @@ class PhoneAgent(
                 if (host.isCancelled) return Outcome.Done(AgentResult(false, "Okay, I stopped."))
                 if (call.name !in setOf("wait", "ask_user")) {
                     val expectedScreen = a11y.currentSnapshot()
-                    val screenBeforeApproval = a11y.readScreen(300)
+                    val screenBeforeApproval = a11y.readScreen(if (compact) COMPACT_ELEMENTS else 300)
                     val contextUnchanged = expectedScreen != null && expectedScreen.foregroundPackage == screenBeforeApproval.foregroundPackage && expectedScreen.text == screenBeforeApproval.text
                     val details = approvalDescription(call, a11y)
                     val firstApproval = host.approveAction(call.name.replace('_', ' ').replaceFirstChar { it.uppercase() }, details)
                     val highRisk = call.name == "tap" && Regex("(?i)\\b(send|call|dial|pay|payment|transfer|delete|purchase|buy|publish|submit|confirm)\\b|отправ|позвон|оплат|перевод|удал|покуп|публикац").containsMatchIn(details)
                     val approved = firstApproval && (!highRisk || host.approveAction("Повторное подтверждение", "Это потенциально необратимое действие. Ещё раз проверь детали и подтверди: $details"))
-                    val screenAfterApproval = if (approved) a11y.readScreen(300) else screenBeforeApproval
+                    val screenAfterApproval = if (approved) a11y.readScreen(if (compact) COMPACT_ELEMENTS else 300) else screenBeforeApproval
                     val sameScreen = contextUnchanged && screenBeforeApproval.foregroundPackage == screenAfterApproval.foregroundPackage &&
                         screenBeforeApproval.text == screenAfterApproval.text
                     if (!approved || !sameScreen) {
