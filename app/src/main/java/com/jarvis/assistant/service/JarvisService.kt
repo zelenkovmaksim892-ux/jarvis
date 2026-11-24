@@ -749,13 +749,20 @@ class JarvisService : Service() {
                 val busy = FastActionExecutor.Result(true, false, "I'm still finishing the previous task. Please try again in a moment.")
                 val outcome = try {
                     if (memoryIntent != null) {
-                        fastActions.handleMemory(memoryIntent).also {
-                            if (memoryIntent is MemoryIntent.TeachPhrase) runCatching { phraseMap = memoryStore.phraseCorrections() }
+                        if (!hostFor(id).approveAction("Изменение памяти", "Jarvis собирается изменить локальную память: ${memoryIntent}. Разрешение только на эту операцию.")) {
+                            FastActionExecutor.Result(true, false, "Действие запрещено.")
+                        } else {
+                            fastActions.handleMemory(memoryIntent).also {
+                                if (memoryIntent is MemoryIntent.TeachPhrase) runCatching { phraseMap = memoryStore.phraseCorrections() }
+                            }
                         }
                     } else {
-                        withUi(type == TaskType.PHONE, busy) {
-                            if (needsUnlock(fast!!)) waitForUnlock(id)
-                            fastActions.execute(fast, recordStep = { history.step(id, it) }) { question -> hostFor(id).ask(question) }
+                        val command = fast!!
+                        if (!hostFor(id).approveAction("Команда телефона", "Выполнить команду: ${task}.\nТип операции: ${command.javaClass.simpleName}. Разрешение только на один запуск.")) {
+                            FastActionExecutor.Result(true, false, "Действие запрещено.")
+                        } else withUi(type == TaskType.PHONE, busy) {
+                            if (needsUnlock(command)) waitForUnlock(id)
+                            fastActions.execute(command, recordStep = { history.step(id, it) }, asker = null)
                         }
                     }
                 } catch (e: Throwable) {
