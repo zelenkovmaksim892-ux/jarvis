@@ -12,6 +12,12 @@ This package is a **read-only market-data client plus local simulation tools**. 
 
 `PaperAccount` simulates buys and sells entirely in local memory. It does not call Bybit or any other exchange. It tracks virtual cash, positions, fees, trades and marked equity. Restarting the process resets the in-memory account; persistence is intentionally not enabled yet.
 
+## Evidence verification and hybrid policy gate
+
+See [VERIFICATION_AND_HYBRID.md](VERIFICATION_AND_HYBRID.md). The verification module tracks evidence provenance, freshness, explicit support/conflict assessments and source independence. The hybrid gate checks allowlists, order and daily limits, market-data age, verification status, risk tier and a kill switch. Elevated-risk approval is bound to one exact order payload, expires quickly and can be consumed once.
+
+These are policy primitives, not a claim that an LLM can prove every statement true. Semantic assessment of whether an excerpt supports a claim must be separately validated. The gate never sends orders. Even a hybrid policy pass is labelled not executable because this repository has no live exchange adapter.
+
 ## Install and test
 
 ```bash
