@@ -117,6 +117,7 @@ class TaskIslandTest {
         val root = views(service).single()
         idle(800)
         assertEquals(View.VISIBLE, root.findViewById<View>(R.id.approvalPanel).visibility)
+        assertEquals(View.VISIBLE, root.findViewById<View>(R.id.expPrimary).visibility) // Emergency Stop stays available.
         assertEquals("Нажать кнопку отправки в WhatsApp", text(root, R.id.approvalDetails))
         assertFalse(allowed)
         assertFalse(denied)
