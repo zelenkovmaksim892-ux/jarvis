@@ -216,7 +216,7 @@ class TaskIsland(private val service: AccessibilityService) {
 
         // Approval takes priority over ordinary task controls. Voice responses cannot activate these buttons.
         b.approvalPanel.visibility = if (approvalPending) View.VISIBLE else View.GONE
-        b.expActions.visibility = if (approvalPending) View.GONE else View.VISIBLE
+        b.expActions.visibility = View.VISIBLE
         if (approvalPending) {
             b.approvalTitle.text = task ?: "Подтверждение действия"
             b.approvalDetails.text = status
