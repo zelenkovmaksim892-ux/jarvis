@@ -44,12 +44,40 @@ class TaskIsland(private val service: AccessibilityService) {
     private var speaking = false
     private var partial: (() -> String)? = null
     private var micLevel: (() -> Float)? = null
+    private var approvalPending = false
+    private var approvalAllow: (() -> Unit)? = null
+    private var approvalDeny: (() -> Unit)? = null
 
     var expanded = false
         private set
 
     /** Stop the current task (or cancel listening, or stop talking). */
     var onStop: () -> Unit = {}
+
+    /** Show a one-action approval card. Callbacks are consumed exactly once. */
+    fun requestApproval(title: String, details: String, icon: String, allow: () -> Unit, deny: () -> Unit) {
+        approvalPending = true
+        approvalAllow = allow
+        approvalDeny = deny
+        mode = Mode.WORKING
+        task = title
+        status = details
+        render()
+        expand()
+    }
+
+    private fun resolveApproval(allow: Boolean) {
+        if (!approvalPending) return
+        approvalPending = false
+        val callback = if (allow) approvalAllow else approvalDeny
+        approvalAllow = null
+        approvalDeny = null
+        callback?.invoke()
+        status = if (allow) "Разрешено. Выполняю одно действие…" else "Действие запрещено."
+        render()
+    }
+
+    fun cancelApproval() { resolveApproval(false) }
 
     private val dismiss = Runnable { hide() }
     private val autoCollapse = Runnable { collapse() }
@@ -120,6 +148,7 @@ class TaskIsland(private val service: AccessibilityService) {
         task = null
         status = ""
         speaking = false
+        if (approvalPending) resolveApproval(false)
         b.island.onFrame = null
         b.island.animate().scaleX(0.5f).scaleY(0.5f).alpha(0f).setDuration(200)
             .setInterpolator(DecelerateInterpolator()).withEndAction { runCatching { wm.removeView(b.root) } }.start()
@@ -177,6 +206,24 @@ class TaskIsland(private val service: AccessibilityService) {
         b.expStatus.text = if (mode == Mode.LISTENING) "" else status.takeIf { it != b.expTask.text }.orEmpty()
         b.expStatus.visibility = if (b.expStatus.text.isNullOrEmpty()) View.GONE else View.VISIBLE
 
+        // Approval takes priority over ordinary task controls. Voice responses cannot activate these buttons.
+        b.approvalPanel.visibility = if (approvalPending) View.VISIBLE else View.GONE
+        b.expActions.visibility = if (approvalPending) View.GONE else View.VISIBLE
+        if (approvalPending) {
+            b.approvalTitle.text = task ?: "Подтверждение действия"
+            b.approvalDetails.text = status
+            b.approvalIcon.setImageResource(
+                when {
+                    status.contains("сообщ", true) || status.contains("отправ", true) -> R.drawable.ic_send
+                    status.contains("удал", true) -> R.drawable.ic_delete
+                    status.contains("откры", true) -> R.drawable.ic_home
+                    else -> R.drawable.ic_touch
+                }
+            )
+            b.approvalAllow.setOnClickListener { resolveApproval(true) }
+            b.approvalDeny.setOnClickListener { resolveApproval(false) }
+        }
+
         // Buttons
         val stopLabel = when {
             mode == Mode.LISTENING -> service.getString(R.string.cancel)
@@ -187,7 +234,7 @@ class TaskIsland(private val service: AccessibilityService) {
         if (stopLabel != null) {
             b.expPrimary.text = stopLabel
             b.expPrimary.setTextColor(if (mode == Mode.WORKING) service.color(R.color.danger) else 0xFFFFFFFF.toInt())
-            b.expPrimary.setOnClickListener { onStop(); if (mode != Mode.WORKING) collapse() }
+            b.expPrimary.setOnClickListener { if (approvalPending) resolveApproval(false); onStop(); if (mode != Mode.WORKING) collapse() }
         } else {
             b.expPrimary.setText(R.string.dismiss)
             b.expPrimary.setTextColor(0xFFFFFFFF.toInt())
