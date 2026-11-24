@@ -21,6 +21,8 @@ interface AgentHost {
     fun recordStep(label: String) {}
     /** Speak [question] and return what the person says back, or null if they didn't answer. */
     fun ask(question: String): String?
+    /** Wait for a visible, one-use approval button. Voice answers never grant permission. */
+    fun approveAction(title: String, details: String): Boolean = false
     val isCancelled: Boolean
     fun attachSession(session: ChatSession) {}
 
@@ -48,8 +50,6 @@ class PhoneAgent(
     /** Tips for the app in front, given once per app per session. */
     private var appTips: AppTips? = null
 
-    /** True once the user has said yes to a question in this task. Needed before tapping Send, Call, Pay and similar. */
-    private var userConfirmed = false
 
     /** Short log of actions taken, so a fallback model can pick up where the last one stopped. */
     private val actionLog = mutableListOf<String>()
@@ -68,7 +68,6 @@ class PhoneAgent(
                 "\nUse this only to understand what the new request refers to. Don't redo earlier tasks.\n\n"
         val a11y = JarvisAccessibilityService.instance
             ?: return AgentResult(false, "I can't control the phone yet. Please turn on phone control in the Jarvis app.")
-        userConfirmed = false
         val models = gate.plan(task, TaskKind.AGENT)
         if (models.isEmpty()) {
             return AgentResult(
@@ -162,12 +161,37 @@ class PhoneAgent(
                     return Outcome.Done(AgentResult(call.arguments.optBoolean("success", true), call.arguments.optString("summary", "Done.")))
                 }
                 if (host.isCancelled) return Outcome.Done(AgentResult(false, "Okay, I stopped."))
+                if (call.name !in setOf("wait", "ask_user")) {
+                    val details = approvalDescription(call, a11y)
+                    if (!host.approveAction(call.name.replace('_', ' ').replaceFirstChar { it.uppercase() }, details)) {
+                        if (host.isCancelled) return Outcome.Done(AgentResult(false, "Остановлено."))
+                        results += ToolOutput(call.id, "The user denied this action. Do not retry it or use another tool to perform the same action.")
+                        continue
+                    }
+                }
                 results += execute(a11y, call)
                 actionLog += "${call.name} ${call.arguments}".take(200)
             }
             outputs = results
         }
         return Outcome.Done(AgentResult(false, "I ran out of steps before finishing. The task may be partly done."))
+    }
+
+    private fun approvalDescription(call: ToolCall, a11y: JarvisAccessibilityService): String {
+        val a = call.arguments
+        val foreground = runCatching { a11y.rootInActiveWindow?.packageName?.toString() }.getOrNull() ?: "текущее приложение"
+        return when (call.name) {
+            "tap" -> "Нажать элемент «${a11y.labelOf(a.optInt("element_id"))}» в ${foreground}."
+            "tap_point" -> "Нажать в точке экрана x=${a.optDouble("x")}, y=${a.optDouble("y")} в ${foreground}."
+            "type_text" -> "Ввести текст: «${a.optString("text").take(300)}» в ${foreground}. Enter: ${a.optBoolean("press_enter")}."
+            "long_press" -> "Долгое нажатие на элемент ${a.optInt("element_id")} в ${foreground}."
+            "scroll" -> "Прокрутить экран: ${a.optString("direction", "down")} в ${foreground}."
+            "swipe" -> "Сделать свайп по экрану в ${foreground}."
+            "press_key" -> "Системное действие Android: ${a.optString("key")}."
+            "open_app" -> "Открыть приложение: ${a.optString("name")}."
+            "look_at_screen" -> "Сделать снимок экрана и передать изображение AI-модели. Это может раскрыть личные данные."
+            else -> "Разрешить команду ${call.name} с параметрами: ${a.toString().take(500)}."
+        }
     }
 
     private fun execute(a11y: JarvisAccessibilityService, call: ToolCall): ToolOutput {
@@ -179,24 +203,7 @@ class PhoneAgent(
             var waitMs = 0L
             var image: ByteArray? = null
             val message = when (call.name) {
-                "tap" -> {
-                    val id = a.getInt("element_id")
-                    val label = a11y.labelOf(id)
-                    val sensitive = SensitiveActions.needsConfirmation(label)
-                    if (settings.confirmSensitive && sensitive && !userConfirmed) {
-                        // Enforced here, not left to the model: nothing is sent, called or paid without a yes from the user.
-                        settleMs = 0
-                        "Blocked: tapping \"$label\" would send, call or place something. First use ask_user to confirm with " +
-                            "the user in one short question (who and what), then tap again if they say yes."
-                    } else {
-                        a11y.tap(id).also {
-                            if (sensitive) {
-                                userConfirmed = false // each send needs its own yes
-                                host.onIrreversible()
-                            }
-                        }
-                    }
-                }
+                                "tap" -> a11y.tap(a.getInt("element_id"))
                 "long_press" -> a11y.longPress(a.getInt("element_id"))
                 "type_text" -> a11y.typeText(a.optIntOrNull("element_id"), a.getString("text"), a.optBoolean("press_enter", false))
                 "scroll" -> a11y.scroll(a.optIntOrNull("element_id"), a.optString("direction", "down"))
@@ -222,7 +229,6 @@ class PhoneAgent(
                 "ask_user" -> {
                     settleMs = 0
                     val answer = host.ask(a.getString("question"))
-                    userConfirmed = SensitiveActions.isYes(answer)
                     answer?.let { "The user said: \"$it\"" } ?: "The user did not answer."
                 }
                 else -> {
