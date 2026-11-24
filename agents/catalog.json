@@ -6,6 +6,7 @@
     {"id":"software-engineer","name":"Software Engineer","status":"planned","runtime":"local-or-linux-worker","capabilities":["repository-read","code-generation","tests","lint","build"],"manual_approval":["repository-write","release","deploy"]},
     {"id":"data-analyst","name":"Data Analyst","status":"planned","runtime":"python-worker","capabilities":["csv","xlsx","sql","statistics","charts"]},
     {"id":"market-analyst","name":"Market Analyst","status":"prototype","runtime":"python-worker","capabilities":["public-market-data","indicators","risk-report"],"default_mode":"read-only"},
-    {"id":"strategy-developer","name":"Strategy Developer","status":"prototype","runtime":"python-worker","capabilities":["strategy-templates","backtesting","paper-trading"],"live_orders_enabled":false}
+    {"id":"strategy-developer","name":"Strategy Developer","status":"prototype","runtime":"python-worker","capabilities":["strategy-templates","backtesting","risk-report"],"paper_trading_status":"planned","live_orders_enabled":false}
+    ,{"id":"freqtrade-worker","name":"Freqtrade Crypto Bot Worker","status":"planned","runtime":"isolated-linux-or-docker","capabilities":["historical-data","backtesting","dry-run","strategy-optimization"],"live_trading_enabled":false}
   ]
 }
