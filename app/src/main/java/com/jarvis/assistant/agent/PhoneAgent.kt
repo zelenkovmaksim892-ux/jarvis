@@ -184,7 +184,7 @@ class PhoneAgent(
         return when (call.name) {
             "tap" -> "Нажать элемент «${a11y.labelOf(a.optInt("element_id"))}» в ${foreground}."
             "tap_point" -> "Нажать в точке экрана x=${a.optDouble("x")}, y=${a.optDouble("y")} в ${foreground}."
-            "type_text" -> "Ввести текст: «${a.optString("text").take(300)}» в ${foreground}. Enter: ${a.optBoolean("press_enter")}."
+            "type_text" -> "Ввести текст: «${a.optString("text")}» в ${foreground}. Enter: ${a.optBoolean("press_enter")}."
             "long_press" -> "Долгое нажатие на элемент ${a.optInt("element_id")} в ${foreground}."
             "scroll" -> "Прокрутить экран: ${a.optString("direction", "down")} в ${foreground}."
             "swipe" -> "Сделать свайп по экрану в ${foreground}."
