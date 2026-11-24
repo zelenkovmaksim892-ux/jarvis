@@ -185,7 +185,7 @@ class PhoneAgent(
         val a = call.arguments
         val foreground = runCatching { a11y.rootInActiveWindow?.packageName?.toString() }.getOrNull() ?: "текущее приложение"
         return when (call.name) {
-            "tap" -> "Нажать элемент «${a11y.labelOf(a.optInt("element_id"))}» в ${foreground}."
+            "tap" -> "Нажать элемент «${a11y.labelOf(a.optInt("element_id")).ifBlank { "без подписи, №${a.optInt("element_id")}" }}» в ${foreground}."
             "tap_point" -> "Нажать в точке экрана x=${a.optDouble("x")}, y=${a.optDouble("y")} в ${foreground}."
             "type_text" -> "Ввести текст: «${a.optString("text")}» в ${foreground}. Enter: ${a.optBoolean("press_enter")}."
             "long_press" -> "Долгое нажатие на элемент ${a.optInt("element_id")} в ${foreground}."
