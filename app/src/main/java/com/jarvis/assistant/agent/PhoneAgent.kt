@@ -164,7 +164,10 @@ class PhoneAgent(
                 if (host.isCancelled) return Outcome.Done(AgentResult(false, "Okay, I stopped."))
                 if (call.name !in setOf("wait", "ask_user")) {
                     val details = approvalDescription(call, a11y)
-                    if (!host.approveAction(call.name.replace('_', ' ').replaceFirstChar { it.uppercase() }, details)) {
+                    val firstApproval = host.approveAction(call.name.replace('_', ' ').replaceFirstChar { it.uppercase() }, details)
+                    val highRisk = call.name == "tap" && Regex("(?i)\\b(send|call|dial|pay|payment|transfer|delete|purchase|buy|publish|submit|confirm)\\b|отправ|позвон|оплат|перевод|удал|покуп|публикац").containsMatchIn(details)
+                    val approved = firstApproval && (!highRisk || host.approveAction("Повторное подтверждение", "Это потенциально необратимое действие. Ещё раз проверь детали и подтверди: $details"))
+                    if (!approved) {
                         if (host.isCancelled) return Outcome.Done(AgentResult(false, "Остановлено."))
                         results += ToolOutput(call.id, "The user denied this action. Do not retry it or use another tool to perform the same action.")
                         continue
