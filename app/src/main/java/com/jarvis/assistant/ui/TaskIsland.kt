@@ -280,6 +280,8 @@ class TaskIsland(private val service: AccessibilityService) {
 
     fun collapse() {
         val b = ui ?: return
+        // Keep the only approval controls visible until the user explicitly decides.
+        if (approvalPending) return
         if (!expanded) return
         expanded = false
         main.removeCallbacks(autoCollapse)

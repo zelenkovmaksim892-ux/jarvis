@@ -128,6 +128,17 @@ class TaskIslandTest {
     }
 
     @Test
+    fun approvalCardDoesNotAutoCollapseWhileWaiting() {
+        val service = Robolectric.buildService(JarvisAccessibilityService::class.java).create().get()
+        val island = service.island
+        island.requestApproval("Open app", "Открыть Telegram", "action", allow = {}, deny = {})
+        val root = views(service).single()
+        idle(13_000)
+        assertEquals(View.VISIBLE, root.findViewById<View>(R.id.approvalPanel).visibility)
+        assertEquals(View.VISIBLE, root.findViewById<View>(R.id.expanded).visibility)
+    }
+
+    @Test
     fun approvalAllowIsSingleUse() {
         val service = Robolectric.buildService(JarvisAccessibilityService::class.java).create().get()
         val island = service.island

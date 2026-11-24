@@ -69,6 +69,14 @@ jobs:
           name: jarvis-debug-apk
           path: app/build/outputs/apk/debug/*.apk
 
+      - name: Python trading engine tests
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Python tests
+        run: PYTHONPATH=trading-engine python -m unittest discover -s trading-engine/tests -v
+
       - name: Unit tests and lint
         run: ./gradlew testDebugUnitTest lintDebug
 
