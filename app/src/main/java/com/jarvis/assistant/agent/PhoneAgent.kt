@@ -207,7 +207,14 @@ class PhoneAgent(
             var waitMs = 0L
             var image: ByteArray? = null
             val message = when (call.name) {
-                                "tap" -> a11y.tap(a.getInt("element_id"))
+                                "tap" -> {
+                    val label = a11y.labelOf(a.getInt("element_id"))
+                    a11y.tap(a.getInt("element_id")).also { result ->
+                        if (!result.contains("failed", true) && Regex("(?i)\\b(send|call|dial|pay|payment|transfer|delete|purchase|buy|publish|submit|confirm)\\b|отправ|позвон|оплат|перевод|удал|покуп|публикац").containsMatchIn(label)) {
+                            host.onIrreversible()
+                        }
+                    }
+                }
                 "long_press" -> a11y.longPress(a.getInt("element_id"))
                 "type_text" -> a11y.typeText(a.optIntOrNull("element_id"), a.getString("text"), a.optBoolean("press_enter", false))
                 "scroll" -> a11y.scroll(a.optIntOrNull("element_id"), a.optString("direction", "down"))
