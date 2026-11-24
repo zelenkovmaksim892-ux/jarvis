@@ -45,6 +45,7 @@ class TaskIsland(private val service: AccessibilityService) {
     private var partial: (() -> String)? = null
     private var micLevel: (() -> Float)? = null
     private var approvalPending = false
+    private var approvalIconName = "action"
     private var approvalAllow: (() -> Unit)? = null
     private var approvalDeny: (() -> Unit)? = null
 
@@ -57,6 +58,7 @@ class TaskIsland(private val service: AccessibilityService) {
     /** Show a one-action approval card. Callbacks are consumed exactly once. */
     fun requestApproval(title: String, details: String, icon: String, allow: () -> Unit, deny: () -> Unit) {
         approvalPending = true
+        approvalIconName = icon
         approvalAllow = allow
         approvalDeny = deny
         mode = Mode.WORKING
@@ -220,9 +222,9 @@ class TaskIsland(private val service: AccessibilityService) {
             b.approvalDetails.text = status
             b.approvalIcon.setImageResource(
                 when {
-                    status.contains("сообщ", true) || status.contains("отправ", true) -> R.drawable.ic_send
-                    status.contains("удал", true) -> R.drawable.ic_delete
-                    status.contains("откры", true) -> R.drawable.ic_home
+                    approvalIconName.contains("send", true) || status.contains("сообщ", true) || status.contains("отправ", true) -> R.drawable.ic_send
+                    approvalIconName.contains("delete", true) || status.contains("удал", true) -> R.drawable.ic_delete
+                    approvalIconName.contains("open", true) || status.contains("откры", true) -> R.drawable.ic_home
                     else -> R.drawable.ic_touch
                 }
             )
