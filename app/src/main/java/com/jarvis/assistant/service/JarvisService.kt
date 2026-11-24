@@ -981,6 +981,38 @@ class JarvisService : Service() {
                 if (!destroyed && !isStale(id)) update(text)
             }
         }
+        override fun approveAction(title: String, details: String): Boolean {
+            val latch = CountDownLatch(1)
+            @Volatile var allowed = false
+            main.post {
+                if (destroyed || isStale(id) || !settings.showIsland) {
+                    latch.countDown()
+                    return@post
+                }
+                val service = JarvisAccessibilityService.instance
+                if (service == null) {
+                    latch.countDown()
+                    return@post
+                }
+                service.island.onStop = { start(this@JarvisService, ACTION_STOP_TASK) }
+                service.island.requestApproval(
+                    title,
+                    details,
+                    "action",
+                    allow = { allowed = true; latch.countDown() },
+                    deny = { allowed = false; latch.countDown() },
+                )
+                update("Ожидаю подтверждение: $title")
+            }
+            val deadline = System.currentTimeMillis() + 120_000
+            while (!latch.await(200, TimeUnit.MILLISECONDS)) {
+                if (destroyed || isStale(id) || System.currentTimeMillis() > deadline) {
+                    main.post { JarvisAccessibilityService.instance?.island?.cancelApproval() }
+                    return false
+                }
+            }
+            return allowed && !destroyed && !isStale(id)
+        }
         override fun ask(question: String): String? {
             val latch = CountDownLatch(1)
             var answer: String? = null
