@@ -139,6 +139,13 @@ class TaskIsland(private val service: AccessibilityService) {
 
     fun hide() {
         val b = ui ?: return
+        if (approvalPending) {
+            approvalPending = false
+            val deny = approvalDeny
+            approvalAllow = null
+            approvalDeny = null
+            deny?.invoke()
+        }
         ui = null
         params = null
         expanded = false
@@ -148,7 +155,6 @@ class TaskIsland(private val service: AccessibilityService) {
         task = null
         status = ""
         speaking = false
-        if (approvalPending) resolveApproval(false)
         b.island.onFrame = null
         b.island.animate().scaleX(0.5f).scaleY(0.5f).alpha(0f).setDuration(200)
             .setInterpolator(DecelerateInterpolator()).withEndAction { runCatching { wm.removeView(b.root) } }.start()
