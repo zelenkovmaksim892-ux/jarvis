@@ -1018,7 +1018,9 @@ class JarvisService : Service() {
                     return false
                 }
             }
-            return allowed && !destroyed && !isStale(id)
+            val granted = allowed && !destroyed && !isStale(id)
+            if (!destroyed && !isStale(id)) history.step(id, (if (granted) "Разрешено: " else "Запрещено: ") + title)
+            return granted
         }
         override fun ask(question: String): String? {
             val latch = CountDownLatch(1)
