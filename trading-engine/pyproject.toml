@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jarvis-trading-engine"
+version = "0.1.0"
+description = "Research-first, paper-only trading tools for Jarvis"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+[project.optional-dependencies]
+market-data = ["ccxt>=4.5,<5"]

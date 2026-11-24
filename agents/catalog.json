@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "default_policy": "deny",
+  "agents": [
+    {"id":"firmware-build-engineer","name":"Firmware Build Engineer","status":"planned","runtime":"linux-worker","capabilities":["source-analysis","android-build","kernel-build","device-tree-analysis","log-analysis"],"manual_approval":["flash-device","unlock-bootloader","write-partitions","erase-data"]},
+    {"id":"software-engineer","name":"Software Engineer","status":"planned","runtime":"local-or-linux-worker","capabilities":["repository-read","code-generation","tests","lint","build"],"manual_approval":["repository-write","release","deploy"]},
+    {"id":"data-analyst","name":"Data Analyst","status":"planned","runtime":"python-worker","capabilities":["csv","xlsx","sql","statistics","charts"]},
+    {"id":"market-analyst","name":"Market Analyst","status":"prototype","runtime":"python-worker","capabilities":["public-market-data","indicators","risk-report"],"default_mode":"read-only"},
+    {"id":"strategy-developer","name":"Strategy Developer","status":"prototype","runtime":"python-worker","capabilities":["strategy-templates","backtesting","paper-trading"],"live_orders_enabled":false}
+  ]
+}
