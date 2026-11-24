@@ -85,7 +85,7 @@
     <string name="section_assistant">Assistant</string>
     <string name="which_ai">Which AI answers</string>
     <string name="voice_command_language">Voice command language</string>
-    <string name="confirm_sensitive">Ask before calls and messages</string>
+    <string name="confirm_sensitive">On-screen approval for every phone action (always on)</string>
     <string name="share_memory_cloud">Let cloud AI see my memories</string>
     <string name="autostart_local_model">Start the on-phone model automatically</string>
     <string name="remember_tasks">Remember what tasks I have done</string>
