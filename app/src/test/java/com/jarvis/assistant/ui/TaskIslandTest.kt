@@ -102,6 +102,45 @@ class TaskIslandTest {
     }
 
     @Test
+    fun approvalCardRequiresAnExplicitButton() {
+        val service = Robolectric.buildService(JarvisAccessibilityService::class.java).create().get()
+        val island = service.island
+        var allowed = false
+        var denied = false
+        island.requestApproval(
+            "Tap",
+            "Нажать кнопку отправки в WhatsApp",
+            "send",
+            allow = { allowed = true },
+            deny = { denied = true },
+        )
+        val root = views(service).single()
+        idle(800)
+        assertEquals(View.VISIBLE, root.findViewById<View>(R.id.approvalPanel).visibility)
+        assertEquals("Нажать кнопку отправки в WhatsApp", text(root, R.id.approvalDetails))
+        assertFalse(allowed)
+        assertFalse(denied)
+        root.findViewById<View>(R.id.approvalDeny).performClick()
+        assertTrue(denied)
+        assertFalse(allowed)
+        assertEquals(View.GONE, root.findViewById<View>(R.id.approvalPanel).visibility)
+    }
+
+    @Test
+    fun approvalAllowIsSingleUse() {
+        val service = Robolectric.buildService(JarvisAccessibilityService::class.java).create().get()
+        val island = service.island
+        var approvals = 0
+        island.requestApproval("Open app", "Открыть Telegram", "action", allow = { approvals++ }, deny = {})
+        val root = views(service).single()
+        idle(800)
+        root.findViewById<View>(R.id.approvalAllow).performClick()
+        assertEquals(1, approvals)
+        root.findViewById<View>(R.id.approvalAllow).performClick()
+        assertEquals(1, approvals)
+    }
+
+    @Test
     fun listeningCanBeCancelled() {
         val service = Robolectric.buildService(JarvisAccessibilityService::class.java).create().get()
         val island = service.island
