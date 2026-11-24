@@ -125,7 +125,7 @@ class PhoneAgent(
             "\n\nAnother assistant started this task and was interrupted. It already did these actions, in order:\n" +
                 actionLog.joinToString("\n") { "- $it" } + "\nCheck the current screen and continue from there; don't repeat anything already done (for example, don't send a message twice)."
         } else ""
-        if (!host.approveAction("Передача содержимого экрана", "Прочитать текст текущего экрана и передать его AI-модели «$name». На экране могут быть личные сообщения, уведомления и другие данные.")) return Outcome.Done(AgentResult(false, "Передача содержимого экрана запрещена. Ничего на телефоне не изменено."))
+        if (!host.approveAction("Передача содержимого экрана", "Передать AI-модели «$name» текст текущего экрана и сохранённые заметки Jarvis, если они есть. Там могут быть личные сообщения, уведомления и личные сведения.")) return Outcome.Done(AgentResult(false, "Передача содержимого экрана запрещена. Ничего на телефоне не изменено."))
         var userText: String? = "${earlier}${contextNotes(task, profile)}Task: $task$handover\n\n${observe(a11y)}"
         var outputs = emptyList<ToolOutput>()
         var nudges = 0
@@ -266,7 +266,7 @@ class PhoneAgent(
                 Thread.sleep(settleMs)
                 waitMs = android.os.SystemClock.elapsedRealtime() - waitStartedAt
             }
-            val screen = if (host.approveAction("Передача содержимого экрана", "Прочитать текст текущего экрана и передать его AI-модели. На экране могут быть личные данные.")) observe(a11y) else "Экран не передан модели: пользователь запретил чтение содержимого."
+            val screen = if (host.approveAction("Передача содержимого экрана", "Передать AI-модели текст текущего экрана. На экране могут быть личные данные.")) observe(a11y) else "Экран не передан модели: пользователь запретил чтение содержимого."
             Log.i(TAG, "tool=${call.name} action=${actionMs}ms wait=${waitMs}ms total=${android.os.SystemClock.elapsedRealtime() - toolStartedAt}ms")
             ToolOutput(call.id, "$message\n\n$screen", imageJpeg = image)
         } catch (e: Exception) {
