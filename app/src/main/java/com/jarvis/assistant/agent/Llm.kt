@@ -51,13 +51,30 @@ object Llm {
     /** Sends a tiny request to check the address, key and model. Returns the reply text; throws on failure. */
     fun test(config: ProviderConfig): String {
         val ping = ToolSpec("ping", "Reply received.", obj("ok" to bool("Always true."), required = listOf("ok")))
-        val turn = newSession(config, "You are being tested. Reply with the single word OK.", listOf(ping)).send("Say OK.", emptyList())
+        val turn = newSession(
+            config,
+            "You are being tested. Reply with the single word OK.",
+            listOf(ping),
+            applyIntegrityPolicy = false,
+        ).send("Say OK.", emptyList())
         return turn.text.ifBlank { if (turn.toolCalls.isNotEmpty()) "OK (tool call)" else turn.stopNote ?: "OK" }
     }
 
-    fun newSession(config: ProviderConfig, system: String, tools: List<ToolSpec>): ChatSession =
-        when (config.preset.kind) {
-            ApiKind.ANTHROPIC -> AnthropicSession(config, system, tools)
-            ApiKind.OPENAI_COMPATIBLE -> OpenAiCompatibleSession(config, system, tools)
+    /**
+     * Creates a provider session. The shared answer-integrity rules are applied here,
+     * so chat and phone-control agents cannot silently use different factuality policies.
+     * Set applyIntegrityPolicy=false only for protocol/connection diagnostics.
+     */
+    fun newSession(
+        config: ProviderConfig,
+        system: String,
+        tools: List<ToolSpec>,
+        applyIntegrityPolicy: Boolean = true,
+    ): ChatSession {
+        val effectiveSystem = if (applyIntegrityPolicy) AnswerIntegrityPolicy.apply(system) else system
+        return when (config.preset.kind) {
+            ApiKind.ANTHROPIC -> AnthropicSession(config, effectiveSystem, tools)
+            ApiKind.OPENAI_COMPATIBLE -> OpenAiCompatibleSession(config, effectiveSystem, tools)
         }
+    }
 }

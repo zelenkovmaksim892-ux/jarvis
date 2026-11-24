@@ -2,6 +2,7 @@ package com.jarvis.assistant.ai
 
 import android.os.SystemClock
 import android.util.Log
+import com.jarvis.assistant.agent.AnswerIntegrityPolicy
 import com.jarvis.assistant.agent.OpenAiCompatibleSession
 import com.jarvis.assistant.agent.ToolSpec
 import org.json.JSONArray
@@ -28,9 +29,10 @@ object LocalWarmup {
         if (now - lastAt < MIN_GAP_MS) return
         if (!inFlight.compareAndSet(false, true)) return
         lastAt = now
+        val guardedSystem = AnswerIntegrityPolicy.apply(system)
         Thread({
             try {
-                warm(baseUrl, model, system, tools, apiKey)
+                warm(baseUrl, model, guardedSystem, tools, apiKey)
             } finally {
                 inFlight.set(false)
             }
