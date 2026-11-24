@@ -52,8 +52,8 @@ object AssistantSection {
         }
 
         view.findViewById<MaterialSwitch>(R.id.confirmSwitch).apply {
-            isChecked = settings.confirmSensitive
-            setOnCheckedChangeListener { _, checked -> settings.confirmSensitive = checked }
+            isChecked = true
+            isEnabled = false // Phone actions always require the visible one-use approval card.
         }
         view.findViewById<MaterialSwitch>(R.id.shareMemorySwitch).apply {
             isChecked = settings.shareMemoryWithCloud
