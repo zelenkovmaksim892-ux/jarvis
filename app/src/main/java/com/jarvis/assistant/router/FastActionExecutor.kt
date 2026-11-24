@@ -119,7 +119,7 @@ class FastActionExecutor(
             Result(true, ok, if (ok) "The dialer is open with that number. Tap call to place it." else "I couldn't open the dialer.")
         }
         is FastCommand.CallContact -> callContact(cmd.name, asker)
-        is FastCommand.PlayYouTube -> playYouTube(cmd.query, recordStep)
+        is FastCommand.PlayYouTube -> Result(false, false, "") // Multi-step playback is delegated to PhoneAgent so every tap gets its own approval.
         is FastCommand.TapText -> withPhoneControl { svc ->
             val msg = svc.tapByText(cmd.text)
             Result(true, msg.startsWith("Tapped"), msg)
