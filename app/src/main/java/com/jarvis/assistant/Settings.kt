@@ -67,6 +67,7 @@ data class ProviderConfig(
 
 class Settings(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
+    private val secretStore = SecretStore()
 
     var maxSteps: Int
         get() = prefs.getInt("max_steps", 40)
@@ -124,7 +125,13 @@ class Settings(context: Context) {
 
     fun profiles(): List<ModelProfile> {
         migrateLegacyProvider()
-        val arr = JSONArray(prefs.getString("profiles", "[]"))
+        val encrypted = prefs.getString("profiles_secure", null)
+            ?: throw IllegalStateException("Secure model storage was not initialized")
+        val arr = try {
+            JSONArray(secretStore.decrypt(encrypted))
+        } catch (e: Exception) {
+            throw IllegalStateException("Saved AI credentials could not be decrypted; the stored data was preserved.", e)
+        }
         return (0 until arr.length()).map { ModelProfile.fromJson(arr.getJSONObject(it)) }
     }
 
@@ -154,12 +161,30 @@ class Settings(context: Context) {
         if (prefs.getString("primary", null) == id) primaryId = profiles().firstOrNull()?.id
     }
 
-    private fun writeProfiles(list: List<ModelProfile>) =
-        prefs.edit().putString("profiles", JSONArray(list.map { it.toJson() }).toString()).apply()
+    private fun writeProfiles(list: List<ModelProfile>) {
+        val serialized = JSONArray(list.map { it.toJson() }).toString()
+        prefs.edit()
+            .putString("profiles_secure", secretStore.encrypt(serialized))
+            .remove("profiles")
+            .apply()
+    }
 
-    /** Earlier versions stored one setting per provider; turn any that were filled in into profiles. */
+    /** Encrypt credentials from older plaintext preference formats before using them. */
     private fun migrateLegacyProvider() {
-        if (prefs.contains("profiles")) return
+        if (prefs.contains("profiles_secure")) return
+
+        // A previous version stored the whole profile list, including API keys, as plaintext JSON.
+        val legacyProfiles = prefs.getString("profiles", null)
+        if (legacyProfiles != null) {
+            JSONArray(legacyProfiles)
+            prefs.edit()
+                .putString("profiles_secure", secretStore.encrypt(legacyProfiles))
+                .remove("profiles")
+                .apply()
+            return
+        }
+
+        // The oldest version stored one plaintext key per provider.
         val migrated = PROVIDERS.mapNotNull { p ->
             val key = prefs.getString("p.${p.id}.key", "")!!
             val model = prefs.getString("p.${p.id}.model", null)
@@ -171,9 +196,28 @@ class Settings(context: Context) {
             )
         }
         val legacyPrimary = prefs.getString("provider", null)
-        prefs.edit()
-            .putString("profiles", JSONArray(migrated.map { it.toJson() }).toString())
+        val editor = prefs.edit()
+            .putString("profiles_secure", secretStore.encrypt(JSONArray(migrated.map { it.toJson() }).toString()))
             .putString("primary", migrated.firstOrNull { it.providerId == legacyPrimary }?.id ?: migrated.firstOrNull()?.id)
+        PROVIDERS.forEach { editor.remove("p.${it.id}.key") }
+        editor.apply()
+    }
+
+    private fun readSecret(secureKey: String, legacyKey: String): String {
+        val encrypted = prefs.getString(secureKey, null)
+        if (encrypted != null) return secretStore.decrypt(encrypted)
+        val legacy = prefs.getString(legacyKey, "").orEmpty()
+        prefs.edit()
+            .putString(secureKey, secretStore.encrypt(legacy))
+            .remove(legacyKey)
+            .apply()
+        return legacy
+    }
+
+    private fun writeSecret(secureKey: String, legacyKey: String, value: String) {
+        prefs.edit()
+            .putString(secureKey, secretStore.encrypt(value.trim()))
+            .remove(legacyKey)
             .apply()
     }
 
@@ -201,7 +245,7 @@ class Settings(context: Context) {
         val preset = CLOUD_VOICES.first { it.id == id }
         return CloudVoiceConfig(
             id = id,
-            apiKey = prefs.getString("tts_${id}_key", "")!!.ifEmpty { if (id == "openai") openAiKeyFromModels() else "" },
+            apiKey = readSecret("tts_${id}_key_secure", "tts_${id}_key").ifEmpty { if (id == "openai") openAiKeyFromModels() else "" },
             model = prefs.getString("tts_${id}_model", "")!!.ifEmpty { preset.defaultModel },
             voice = prefs.getString("tts_${id}_voice", null) ?: preset.defaultVoice,
             baseUrl = prefs.getString("tts_${id}_url", "")!!.ifEmpty { preset.defaultBaseUrl },
@@ -209,8 +253,8 @@ class Settings(context: Context) {
     }
 
     fun saveCloudVoice(c: CloudVoiceConfig) {
+        writeSecret("tts_${c.id}_key_secure", "tts_${c.id}_key", c.apiKey)
         prefs.edit()
-            .putString("tts_${c.id}_key", c.apiKey.trim())
             .putString("tts_${c.id}_model", c.model.trim())
             .putString("tts_${c.id}_voice", c.voice.trim())
             .putString("tts_${c.id}_url", c.baseUrl.trim().trimEnd('/'))
@@ -291,8 +335,8 @@ class Settings(context: Context) {
 
     /** Random key the app uses to talk to its own model server; no other app knows it. */
     var runtimeApiKey: String
-        get() = prefs.getString("runtime_key", "") ?: ""
-        set(v) = prefs.edit().putString("runtime_key", v).apply()
+        get() = readSecret("runtime_key_secure", "runtime_key")
+        set(v) = writeSecret("runtime_key_secure", "runtime_key", v)
 
     /** Minutes without a request before the model is unloaded to free about 1 GB of memory. 0 = keep it loaded. */
     var runtimeKeepWarmMinutes: Int
