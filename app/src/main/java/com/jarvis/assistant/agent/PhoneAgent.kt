@@ -39,7 +39,7 @@ internal fun requiresSecondConfirmation(action: String, args: JSONObject, detail
     if (action != "tap") return false
     val normalized = details.lowercase(Locale.ROOT)
     return Regex(
-        """\b(send|call|dial|pay|payment|transfer|delete|purchase|buy|publish|submit|confirm)\b|отправ|позвон|оплат|перев|удал|покуп|публикац|подтверж|спис|вывест"""
+        """\b(send|call|dial|pay|payment|transfer|delete|purchase|buy|publish|submit|confirm)\b|отправ|позвон|оплат|перев|удал|покуп|публикац|подтверд|спис|вывест"""
     ).containsMatchIn(normalized)
 }
 
