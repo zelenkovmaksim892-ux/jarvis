@@ -118,8 +118,8 @@ class CloudVoice {
 
     /** Builds the provider's request for raw 16-bit mono PCM. Returns the request and its sample rate. */
     private fun request(c: CloudVoiceConfig, text: String, speed: Float): Pair<Request, Int> {
-        require(Endpoints.isCredentialTransportSafe(c.baseUrl, c.apiKey.isNotBlank())) {
-            "API credentials require HTTPS; plain HTTP is permitted only for a server on this device."
+        require(Endpoints.isTransportSafe(c.baseUrl)) {
+            "Remote voice endpoints must use HTTPS. Plain HTTP is permitted only for a server on this device."
         }
         val json = "application/json".toMediaType()
         return when (c.id) {

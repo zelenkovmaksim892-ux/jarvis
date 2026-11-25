@@ -47,7 +47,6 @@ jobs:
       - name: Build on-device model runtimes
         id: llama-build
         if: steps.llama-cache.outputs.cache-hit != 'true'
-        continue-on-error: true
         run: bash scripts/build-llama-android.sh
 
       - name: Cache completed native builds

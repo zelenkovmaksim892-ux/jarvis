@@ -18,12 +18,22 @@ object Endpoints {
         return h == "localhost" || h == "::1" || h == "[::1]" || h.startsWith("127.")
     }
 
-    /** API credentials may only cross HTTPS, except when talking to a server on this same device. */
-    fun isCredentialTransportSafe(url: String, hasCredentials: Boolean): Boolean {
-        if (!hasCredentials) return true
+    /**
+     * All remote endpoints must use HTTPS, even when they do not require an API key.
+     * Cleartext HTTP is allowed only for loopback services on this device.
+     * URLs containing embedded user-info are rejected to avoid credential leakage.
+     */
+    fun isTransportSafe(url: String): Boolean {
         val uri = parse(url) ?: return false
-        return uri.scheme.equals("https", ignoreCase = true) || isLoopback(url)
+        if (uri.userInfo != null || uri.host.isNullOrBlank()) return false
+        val scheme = uri.scheme ?: return false
+        return scheme.equals("https", ignoreCase = true) ||
+            (scheme.equals("http", ignoreCase = true) && isLoopback(url))
     }
+
+    /** Backwards-compatible name; transport safety is enforced regardless of whether a key is present. */
+    fun isCredentialTransportSafe(url: String, hasCredentials: Boolean): Boolean =
+        isTransportSafe(url)
 
     /** True when the endpoint works without the internet: this phone or the local network. */
     fun isLocal(url: String): Boolean {
