@@ -181,15 +181,19 @@ class Settings(context: Context) {
             val hasLegacyCopies = prefs.contains("profiles") ||
                 PROVIDERS.any { prefs.contains("p.${it.id}.key") }
             if (!hasLegacyCopies) return
-            // Remove plaintext duplicates only after confirming the encrypted copy is readable and valid JSON.
+            // A valid non-empty encrypted profile list is authoritative. Never replace it with stale plaintext.
             val encrypted = prefs.getString("profiles_secure", null)
-            val readable = runCatching { JSONArray(secretStore.decrypt(encrypted.orEmpty())) }.isSuccess
-            if (readable) {
+            val existing = runCatching { JSONArray(secretStore.decrypt(encrypted.orEmpty())) }.getOrNull()
+            if (existing != null && existing.length() > 0) {
                 val editor = prefs.edit().remove("profiles")
                 PROVIDERS.forEach { editor.remove("p.${it.id}.key") }
                 editor.apply()
+                return
             }
-            return
+            // An empty secure list can be created by a fresh install/test before legacy preferences are restored.
+            // Fall through and migrate those legacy profiles instead of silently deleting the only saved credentials.
+            if (existing != null) prefs.edit().remove("profiles_secure").apply()
+            else return // Keep unreadable encrypted data and plaintext recovery copies intact.
         }
 
         // A previous version stored the whole profile list, including API keys, as plaintext JSON.
