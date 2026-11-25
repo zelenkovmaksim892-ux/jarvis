@@ -165,16 +165,18 @@ object ModelDownloader {
                     if (entryCount > MAX_ARCHIVE_ENTRIES) throw IOException("Model archive contains too many entries")
 
                     val name = entry.name
-                    if (name.isBlank() || name.startsWith("/") || name.contains("\\") ||
-                        name.contains('\u0000') || Regex("^[A-Za-z]:").containsMatchIn(name)
+                    // Treat both slash styles as separators while validating every component.
+                    // Do not strip the archive root until traversal checks have passed.
+                    val normalizedName = name.replace('\\', '/')
+                    if (name.isBlank() || name.contains('\u0000') ||
+                        normalizedName.startsWith("/") || Regex("^[A-Za-z]:").containsMatchIn(normalizedName)
                     ) throw IOException("Unsafe model archive path")
-
-                    // Strip the archive's top-level folder. Reject traversal rather than trying to normalize it.
-                    val relative = name.substringAfter('/', "").trimEnd('/')
-                    if (relative.isEmpty()) continue
-                    if (relative.split('/').any { it == ".." || it == "." || it.isEmpty() }) {
+                    val segments = normalizedName.trimEnd('/').split('/')
+                    if (segments.isEmpty() || segments.any { it == ".." || it == "." || it.isEmpty() }) {
                         throw IOException("Unsafe model archive path")
                     }
+                    val relative = segments.drop(1).joinToString("/")
+                    if (relative.isEmpty()) continue
 
                     val output = File(staging, relative)
                     val canonical = output.canonicalPath
