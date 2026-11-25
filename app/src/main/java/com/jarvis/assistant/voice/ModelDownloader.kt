@@ -168,7 +168,7 @@ object ModelDownloader {
                     // Treat both slash styles as separators while validating every component.
                     // Do not strip the archive root until traversal checks have passed.
                     val normalizedName = name.replace('\\', '/')
-                    if (name.isBlank() || name.contains('\u0000') ||
+                    if (name.isBlank() || name.contains('\u0000') || name.contains('\\') ||
                         normalizedName.startsWith("/") || Regex("^[A-Za-z]:").containsMatchIn(normalizedName)
                     ) throw IOException("Unsafe model archive path")
                     val segments = normalizedName.trimEnd('/').split('/')
