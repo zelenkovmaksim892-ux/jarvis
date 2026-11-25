@@ -279,7 +279,9 @@ class PhoneAgent(
     /** Things that change from request to request. They go in the user message so the system prompt stays identical and cacheable. */
     private fun contextNotes(task: String, profile: ModelProfile): String {
         val now = SimpleDateFormat("EEEE d MMMM yyyy, HH:mm", Locale.getDefault()).format(Date())
-        val notes = settings.personalNotes.trim()
+        // Personal notes stay on-device unless the user explicitly allows sharing with cloud models.
+        val mayShareNotes = Endpoints.isLocal(profile.baseUrl) || settings.shareMemoryWithCloud
+        val notes = settings.personalNotes.trim().takeIf { mayShareNotes }.orEmpty()
         val memory = gate.memoryContext(task, profile)
         return buildString {
             append("Current date/time: $now.\n")
