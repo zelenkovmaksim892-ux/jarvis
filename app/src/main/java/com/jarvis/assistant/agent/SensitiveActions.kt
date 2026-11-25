@@ -16,7 +16,9 @@ object SensitiveActions {
     )
     private val NO = Regex("""\b(no|nope|don'?t|cancel|stop|wait|nahi|nahin|mat|ruko)\b""", RegexOption.IGNORE_CASE)
     private val YES_HINDI = listOf("हाँ", "हां", "ठीक है", "कर दो", "भेज दो")
+    private val YES_RUSSIAN = listOf("да", "ага", "подтверждаю", "можно", "отправляй", "звони", "согласен", "согласна")
     private val NO_HINDI = listOf("नहीं", "मत", "रुको")
+    private val NO_RUSSIAN = listOf("нет", "не надо", "не отправляй", "не звони", "отмена", "подожди", "стоп")
 
     /** True if tapping a control with this label sends, places or deletes something. */
     fun needsConfirmation(label: String): Boolean = label.isNotBlank() && SENSITIVE.containsMatchIn(label)
@@ -24,8 +26,8 @@ object SensitiveActions {
     /** True only for a clear yes. Anything unclear, or containing a no, counts as "not confirmed". */
     fun isYes(answer: String?): Boolean {
         if (answer.isNullOrBlank()) return false
-        val no = NO.containsMatchIn(answer) || NO_HINDI.any { it in answer }
-        val yes = YES.containsMatchIn(answer) || YES_HINDI.any { it in answer }
+        val no = NO.containsMatchIn(answer) || NO_HINDI.any { it in answer } || NO_RUSSIAN.any { it in answer.lowercase() }
+        val yes = YES.containsMatchIn(answer) || YES_HINDI.any { it in answer } || YES_RUSSIAN.any { it in answer.lowercase() }
         return yes && !no
     }
 }
