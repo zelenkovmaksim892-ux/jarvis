@@ -23,11 +23,22 @@ object SensitiveActions {
     /** True if tapping a control with this label sends, places or deletes something. */
     fun needsConfirmation(label: String): Boolean = label.isNotBlank() && SENSITIVE.containsMatchIn(label)
 
+    /** Match a complete word or phrase, never a fragment inside an unrelated word (e.g. "да" in "задача"). */
+    private fun containsPhrase(text: String, phrase: String): Boolean {
+        val pattern = Regex(
+            "(?iu)(?:^|[^\\p{L}\\p{N}_])" + Regex.escape(phrase) + "(?=$|[^\\p{L}\\p{N}_])"
+        )
+        return pattern.containsMatchIn(text)
+    }
+
     /** True only for a clear yes. Anything unclear, or containing a no, counts as "not confirmed". */
     fun isYes(answer: String?): Boolean {
         if (answer.isNullOrBlank()) return false
-        val no = NO.containsMatchIn(answer) || NO_HINDI.any { it in answer } || NO_RUSSIAN.any { it in answer.lowercase() }
-        val yes = YES.containsMatchIn(answer) || YES_HINDI.any { it in answer } || YES_RUSSIAN.any { it in answer.lowercase() }
+        val no = NO.containsMatchIn(answer) ||
+            (NO_HINDI + NO_RUSSIAN).any { containsPhrase(answer, it) } ||
+            containsPhrase(answer, "не да")
+        val yes = YES.containsMatchIn(answer) ||
+            (YES_HINDI + YES_RUSSIAN).any { containsPhrase(answer, it) }
         return yes && !no
     }
 }
