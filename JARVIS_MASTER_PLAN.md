@@ -50,9 +50,11 @@ Changes committed to `jarvis-development` on 2026-11-25:
 - Hardened model archive path validation so traversal components are rejected before the archive's top-level folder is stripped.
 - Added a functional JSON dependency for JVM tests.
 
-Latest known branch head when this plan was written: `673711c6b0f50a1e083ecc4d622b572c7ad801cf`.
+Latest known branch head when this plan was written: `1418b77452c0bfd7b20767c561cdc5d41e1b03eb`.
 
 CI and CodeQL were triggered for the latest commits, but no successful run for this exact head had yet been confirmed at the time of writing. Do not mark these changes as fully validated until the workflows complete and failures are resolved.
+- Extended irreversible-action detection and confirmation phrase handling to Russian labels and speech responses; added regression tests for Russian yes/no phrases and false positives. Commits: `0123bf4`, `6432605`, `8353116`, `41a02c2`, `0c4bc5c`, `e216576`, `1418b77`.
+- Follow-up security review found that the model archive downloader pins SHA-256 for speech and Kokoro archives, but the wake-word archive currently pins only size. GGUF downloader refuses models without a trusted SHA-256, restricts HTTP to loopback, and rejects HTTPS downgrade redirects; redirect host allowlisting remains a review item. These findings are not yet resolved.
 
 ## 5. Product requirements and roadmap
 
@@ -122,6 +124,8 @@ Status key: **Implemented** = source/docs/tests show the feature exists; **Proto
 ### H. Quality, release and operations
 - [ ] Restore green CI on the latest development head; investigate every failing test rather than suppressing it.
 - [ ] Run CodeQL, dependency review, secret scanning and Gradle wrapper verification successfully.
+- [ ] Pin a trusted SHA-256 for the wake-word model archive, or migrate to a release asset with published integrity metadata.
+- [ ] Review and constrain GGUF redirect destinations to an explicit trusted-host policy; retain HTTPS-only redirects for remote downloads.
 - [ ] Add tests for Russian dangerous-action detection, archive traversal variants, Keystore migration, permission gates and agent prompt-injection boundaries.
 - [ ] Add instrumentation tests and manual test checklist on Redmi Note 10 Pro.
 - [ ] Verify APK signatures, hashes, ABI splits, install/upgrade path and rollback.
