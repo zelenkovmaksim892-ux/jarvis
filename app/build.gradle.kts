@@ -187,6 +187,8 @@ dependencies {
     implementation("org.apache.commons:commons-compress:1.27.1")
 
     testImplementation("junit:junit:4.13.2")
+    // Provide functional org.json classes in local JVM tests, not Android stub methods.
+    testImplementation("org.json:json:20240303")
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("androidx.test:core:1.6.1")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
