@@ -18,6 +18,13 @@ object Endpoints {
         return h == "localhost" || h == "::1" || h == "[::1]" || h.startsWith("127.")
     }
 
+    /** API credentials may only cross HTTPS, except when talking to a server on this same device. */
+    fun isCredentialTransportSafe(url: String, hasCredentials: Boolean): Boolean {
+        if (!hasCredentials) return true
+        val uri = parse(url) ?: return false
+        return uri.scheme.equals("https", ignoreCase = true) || isLoopback(url)
+    }
+
     /** True when the endpoint works without the internet: this phone or the local network. */
     fun isLocal(url: String): Boolean {
         if (isLoopback(url)) return true

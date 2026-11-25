@@ -71,6 +71,9 @@ object Llm {
         tools: List<ToolSpec>,
         applyIntegrityPolicy: Boolean = true,
     ): ChatSession {
+        require(Endpoints.isCredentialTransportSafe(config.baseUrl, config.apiKey.isNotBlank())) {
+            "API credentials require HTTPS; plain HTTP is permitted only for a server on this device."
+        }
         val effectiveSystem = if (applyIntegrityPolicy) AnswerIntegrityPolicy.apply(system) else system
         return when (config.preset.kind) {
             ApiKind.ANTHROPIC -> AnthropicSession(config, effectiveSystem, tools)

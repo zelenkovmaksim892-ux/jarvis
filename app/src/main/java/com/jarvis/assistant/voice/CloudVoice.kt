@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import com.jarvis.assistant.CloudVoiceConfig
+import com.jarvis.assistant.ai.Endpoints
 import okhttp3.Call
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -117,6 +118,9 @@ class CloudVoice {
 
     /** Builds the provider's request for raw 16-bit mono PCM. Returns the request and its sample rate. */
     private fun request(c: CloudVoiceConfig, text: String, speed: Float): Pair<Request, Int> {
+        require(Endpoints.isCredentialTransportSafe(c.baseUrl, c.apiKey.isNotBlank())) {
+            "API credentials require HTTPS; plain HTTP is permitted only for a server on this device."
+        }
         val json = "application/json".toMediaType()
         return when (c.id) {
             "elevenlabs" -> {
