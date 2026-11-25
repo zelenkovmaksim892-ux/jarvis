@@ -22,6 +22,8 @@ class PhoneAgentSecurityTest {
     @Test fun dangerousButtonLabelsNeedSecondConfirmation() {
         assertTrue(requiresSecondConfirmation("tap", JSONObject(), "Tap element Send message in WhatsApp"))
         assertTrue(requiresSecondConfirmation("tap", JSONObject(), "Нажать элемент «Удалить»"))
+        assertTrue(requiresSecondConfirmation("tap", JSONObject(), "Нажать элемент «Перевести деньги»"))
+        assertTrue(requiresSecondConfirmation("tap", JSONObject(), "Нажать элемент «Подтвердить платёж»"))
     }
 
     @Test fun harmlessActionsDoNotGetExtraConfirmation() {
