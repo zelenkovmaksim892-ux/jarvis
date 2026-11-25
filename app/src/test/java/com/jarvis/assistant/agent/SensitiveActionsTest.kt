@@ -6,7 +6,7 @@ import org.junit.Test
 
 class SensitiveActionsTest {
     @Test fun sendingCallingAndPayingNeedConfirmation() {
-        for (label in listOf("Send", "send message", "Call", "Dial", "Post", "Reply", "Pay now", "Place order", "Delete", "  Send  ")) {
+        for (label in listOf("Send", "send message", "Call", "Dial", "Post", "Reply", "Pay now", "Place order", "Delete", "  Send  ", "Отправить", "Перевести", "Подтвердить платёж")) {
             assertTrue(label, SensitiveActions.needsConfirmation(label))
         }
     }
@@ -18,7 +18,7 @@ class SensitiveActionsTest {
     }
 
     @Test fun onlyAClearYesConfirms() {
-        for (a in listOf("yes", "Yeah go ahead", "ok send it", "haan", "theek hai", "हाँ", "हां कर दो")) assertTrue(a, SensitiveActions.isYes(a))
-        for (a in listOf(null, "", "no", "no don't send it", "yes no wait", "maybe", "nahi", "नहीं", "hmm let me think")) assertFalse(a.toString(), SensitiveActions.isYes(a))
+        for (a in listOf("yes", "Yeah go ahead", "ok send it", "haan", "theek hai", "हाँ", "हां कर दो", "да", "ага, отправляй", "подтверждаю")) assertTrue(a, SensitiveActions.isYes(a))
+        for (a in listOf(null, "", "no", "no don't send it", "yes no wait", "maybe", "nahi", "नहीं", "нет", "не отправляй", "hmm let me think")) assertFalse(a.toString(), SensitiveActions.isYes(a))
     }
 }
