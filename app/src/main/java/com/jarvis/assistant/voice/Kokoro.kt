@@ -34,6 +34,8 @@ object Kokoro {
     // Kept for 10 minutes so a conversation never pays the reload; freed at once if Android reports memory pressure.
     private const val IDLE_UNLOAD_MS = 600_000L
     const val MODEL_URL = "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-int8-en-v0_19.tar.bz2"
+    const val ARCHIVE_SIZE = 103_248_205L
+    const val ARCHIVE_SHA256 = "c9f0dd393615805b0bab050c340834d5e684e732aec91c0e860cd30e982c08bd"
     val STOCK_PHRASES = listOf(
         "Yes?", "On it.", "Please unlock your phone and I'll get started.",
         // short replies to the most common instant commands, ready before they are needed

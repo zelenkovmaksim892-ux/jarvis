@@ -16,6 +16,7 @@ import com.anthropic.models.messages.TextBlockParam
 import com.anthropic.models.messages.Tool
 import com.anthropic.models.messages.ToolResultBlockParam
 import com.jarvis.assistant.ProviderConfig
+import com.jarvis.assistant.ai.Endpoints
 import org.json.JSONObject
 import kotlin.jvm.optionals.getOrNull
 
@@ -25,6 +26,12 @@ class AnthropicSession(
     private val system: String,
     toolSpecs: List<ToolSpec>,
 ) : ChatSession {
+
+    init {
+        require(Endpoints.isTransportSafe(config.baseUrl)) {
+            "Remote Anthropic endpoints must use HTTPS; HTTP is permitted only for a server on this device."
+        }
+    }
 
     private val client: AnthropicClient = AnthropicOkHttpClient.builder()
         .apiKey(config.apiKey)

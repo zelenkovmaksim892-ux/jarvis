@@ -32,6 +32,7 @@ object Endpoints {
     }
 
     /** Backwards-compatible name; transport safety is enforced regardless of whether a key is present. */
+    @Suppress("UNUSED_PARAMETER")
     fun isCredentialTransportSafe(url: String, hasCredentials: Boolean): Boolean =
         isTransportSafe(url)
 

@@ -22,8 +22,8 @@ data class ProviderPreset(
 val PROVIDERS = listOf(
     ProviderPreset("anthropic", "Claude (Anthropic)", ApiKind.ANTHROPIC, "https://api.anthropic.com", "claude-opus-5-5", true),
     ProviderPreset("openai", "OpenAI", ApiKind.OPENAI_COMPATIBLE, "https://api.openai.com/v1", "gpt-5", true),
-    ProviderPreset("lmstudio", "LM Studio (local)", ApiKind.OPENAI_COMPATIBLE, "http://192.168.1.100:1234/v1", "local-model", false),
-    ProviderPreset("ollama", "Ollama (local)", ApiKind.OPENAI_COMPATIBLE, "http://192.168.1.100:11434/v1", "qwen2.5:14b", false),
+    ProviderPreset("lmstudio", "LM Studio (local)", ApiKind.OPENAI_COMPATIBLE, "http://127.0.0.1:1234/v1", "local-model", false),
+    ProviderPreset("ollama", "Ollama (local)", ApiKind.OPENAI_COMPATIBLE, "http://127.0.0.1:11434/v1", "qwen2.5:14b", false),
     ProviderPreset("openrouter", "OpenRouter", ApiKind.OPENAI_COMPATIBLE, "https://openrouter.ai/api/v1", "anthropic/claude-opus-5-5", true),
     ProviderPreset("gemini", "Google Gemini", ApiKind.OPENAI_COMPATIBLE, "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.5-flash", true),
     ProviderPreset("groq", "Groq", ApiKind.OPENAI_COMPATIBLE, "https://api.groq.com/openai/v1", "llama-3.3-70b-versatile", true),
@@ -68,6 +68,16 @@ data class ProviderConfig(
 class Settings(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
     private val secretStore = SecretStore()
+
+    init {
+        // Migrate every legacy plaintext credential as soon as Settings is opened, not only when a screen uses it.
+        migrateLegacyProvider()
+        CLOUD_VOICES.forEach { voice ->
+            val legacyKey = "tts_${voice.id}_key"
+            if (prefs.contains(legacyKey)) readSecret("tts_${voice.id}_key_secure", legacyKey)
+        }
+        if (prefs.contains("runtime_key")) readSecret("runtime_key_secure", "runtime_key")
+    }
 
     var maxSteps: Int
         get() = prefs.getInt("max_steps", 40)
@@ -171,16 +181,40 @@ class Settings(context: Context) {
 
     /** Encrypt credentials from older plaintext preference formats before using them. */
     private fun migrateLegacyProvider() {
-        if (prefs.contains("profiles_secure")) return
+        if (prefs.contains("profiles_secure")) {
+            // Clean up any duplicate plaintext left by older migration paths.
+            val editor = prefs.edit().remove("profiles")
+            PROVIDERS.forEach { editor.remove("p.${it.id}.key") }
+            editor.apply()
+            return
+        }
 
         // A previous version stored the whole profile list, including API keys, as plaintext JSON.
         val legacyProfiles = prefs.getString("profiles", null)
         if (legacyProfiles != null) {
-            JSONArray(legacyProfiles)
-            prefs.edit()
-                .putString("profiles_secure", secretStore.encrypt(legacyProfiles))
+            val legacyArray = JSONArray(legacyProfiles)
+            val migrated = (0 until legacyArray.length())
+                .map { ModelProfile.fromJson(legacyArray.getJSONObject(it)) }
+                .toMutableList()
+            // Preserve old provider keys that were never represented in the newer profile list.
+            PROVIDERS.forEach { provider ->
+                val legacyKey = prefs.getString("p.${provider.id}.key", "").orEmpty()
+                if (legacyKey.isNotBlank() && migrated.none { it.providerId == provider.id }) {
+                    val model = prefs.getString("p.${provider.id}.model", null) ?: provider.defaultModel
+                    migrated += ModelProfile(
+                        name = provider.label.substringBefore(" ("), providerId = provider.id,
+                        baseUrl = prefs.getString("p.${provider.id}.base", null) ?: provider.defaultBaseUrl,
+                        apiKey = legacyKey, model = model,
+                        effort = prefs.getString("p.${provider.id}.effort", "medium").orEmpty().ifEmpty { "medium" },
+                    )
+                }
+            }
+            val encryptedProfiles = JSONArray(migrated.map { it.toJson() }).toString()
+            val editor = prefs.edit()
+                .putString("profiles_secure", secretStore.encrypt(encryptedProfiles))
                 .remove("profiles")
-                .apply()
+            PROVIDERS.forEach { editor.remove("p.${it.id}.key") }
+            editor.apply()
             return
         }
 
@@ -387,7 +421,7 @@ val CLOUD_VOICES = listOf(
         voiceHint = R.string.fish_voice_hint,
     ),
     CloudVoicePreset(
-        "custom", "Custom", "tts-1", "alloy", "http://192.168.1.10:8880/v1",
+        "custom", "Custom", "tts-1", "alloy", "http://127.0.0.1:8880/v1",
         keyHint = R.string.custom_voice_key_hint,
         voiceHint = R.string.custom_voice_voice_hint,
         needsKey = false, editableUrl = true,

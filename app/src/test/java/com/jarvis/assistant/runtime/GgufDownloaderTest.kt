@@ -143,7 +143,7 @@ class GgufDownloaderTest {
     }
 
 
-    @Test fun cachedFileIsRehashedBeforeItIsTrusted() {
+    @Test fun cachedFileChangedSinceVerificationIsDownloadedAgain() {
         val srv = Server(body, sha(body)); val dir = tmp()
         try {
             val target = File(dir, "m.gguf")
@@ -158,6 +158,17 @@ class GgufDownloaderTest {
             assertTrue(second.toString(), second is GgufDownloader.Result.Ok)
             assertEquals(sha(body), GgufDownloader.sha256Of(target))
             assertEquals(2, srv.requests.count { it.startsWith("GET") })
+        } finally { srv.close() }
+    }
+
+
+    @Test fun refusesModelWithoutTrustedSha256() {
+        val srv = Server(body, null); val dir = tmp()
+        try {
+            val r = GgufDownloader("${srv.base}/model.gguf", File(dir, "m.gguf"), retryPauseMs = 10).download()
+            assertTrue(r.toString(), r is GgufDownloader.Result.Failed && !(r as GgufDownloader.Result.Failed).retryable)
+            assertFalse(File(dir, "m.gguf").exists())
+            assertEquals(0, srv.requests.count { it.startsWith("GET") })
         } finally { srv.close() }
     }
 

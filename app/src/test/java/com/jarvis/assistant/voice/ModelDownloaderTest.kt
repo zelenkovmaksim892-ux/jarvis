@@ -10,6 +10,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.security.MessageDigest
 
 class ModelDownloaderTest {
     @get:Rule val tmp = TemporaryFolder()
@@ -55,6 +56,21 @@ class ModelDownloaderTest {
         val windows = tarBz2("top\\\\..\\\\escape.txt" to "x")
         assertTrue(runCatching { ModelDownloader.unpack(windows, target, ModelDownloader::openTarBz2) }.isFailure)
         assertEquals("keep", target.resolve("keep.txt").readText())
+    }
+
+
+    @Test
+    fun verifiesPinnedArchiveSizeAndSha256() {
+        val archive = tmp.newFile("pinned.tar.bz2").apply { writeText("trusted model archive") }
+        val digest = MessageDigest.getInstance("SHA-256").digest(archive.readBytes())
+            .joinToString("") { "%02x".format(it) }
+        ModelDownloader.verifyArchive(archive, archive.length(), digest)
+        assertTrue(runCatching {
+            ModelDownloader.verifyArchive(archive, archive.length() + 1, digest)
+        }.isFailure)
+        assertTrue(runCatching {
+            ModelDownloader.verifyArchive(archive, archive.length(), "0".repeat(64))
+        }.isFailure)
     }
 
     @Test

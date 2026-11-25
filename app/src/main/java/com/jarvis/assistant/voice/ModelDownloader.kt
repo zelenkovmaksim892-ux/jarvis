@@ -17,6 +17,7 @@ object ModelDownloader {
     private const val MAX_ARCHIVE_BYTES = 512L * 1024 * 1024
     private const val MAX_EXPANDED_BYTES = 2L * 1024 * 1024 * 1024
     private const val MAX_ARCHIVE_ENTRIES = 10_000
+    private val ALLOWED_DOWNLOAD_HOSTS = setOf("github.com", "release-assets.githubusercontent.com")
 
     private val downloadClient by lazy {
         OkHttpClient.Builder()
@@ -28,13 +29,21 @@ object ModelDownloader {
 
     /** The "Hey Jarvis" keyword model: a 17 MB download, of which only ~5 MB of int8 files are kept. */
     fun downloadWakeWord(context: Context, progress: (Int) -> Unit) {
-        download(context, WakeModel.URL, WakeModel.dir(context), progress, ::openTarBz2)
+        download(
+            context, WakeModel.URL, WakeModel.dir(context), progress, ::openTarBz2,
+            expectedSize = WakeModel.ARCHIVE_SIZE,
+            expectedSha256 = null, // Upstream release does not publish a machine-readable asset digest.
+        )
         prune(WakeModel.dir(context), WakeModel.KEEP_FILES)
     }
 
     /** Offline speech recognition for commands (57 MB download). */
     fun downloadSpeech(context: Context, progress: (Int) -> Unit) {
-        download(context, SpeechModel.URL, SpeechModel.dir(context), progress, ::openTarBz2)
+        download(
+            context, SpeechModel.URL, SpeechModel.dir(context), progress, ::openTarBz2,
+            expectedSize = SpeechModel.ARCHIVE_SIZE,
+            expectedSha256 = SpeechModel.ARCHIVE_SHA256,
+        )
         prune(SpeechModel.dir(context), SpeechModel.KEEP_FILES)
     }
 
@@ -44,7 +53,11 @@ object ModelDownloader {
 
     /** The ~100 MB Kokoro voice. */
     fun downloadKokoro(context: Context, progress: (Int) -> Unit) =
-        download(context, Kokoro.MODEL_URL, Kokoro.modelDir(context), progress, ::openTarBz2)
+        download(
+            context, Kokoro.MODEL_URL, Kokoro.modelDir(context), progress, ::openTarBz2,
+            expectedSize = Kokoro.ARCHIVE_SIZE,
+            expectedSha256 = Kokoro.ARCHIVE_SHA256,
+        )
 
     private fun download(
         context: Context,
@@ -52,21 +65,28 @@ object ModelDownloader {
         target: File,
         progress: (Int) -> Unit,
         open: (InputStream) -> ArchiveInputStream<*>,
+        expectedSize: Long,
+        expectedSha256: String?,
     ) {
         val parsed = runCatching { URI(url) }.getOrNull()
             ?: throw IOException("Invalid model download URL")
         if (!parsed.scheme.equals("https", ignoreCase = true) ||
-            parsed.host.isNullOrBlank() || parsed.userInfo != null || parsed.fragment != null
-        ) throw IOException("Model downloads must use a valid HTTPS URL without embedded credentials")
+            parsed.host.isNullOrBlank() || parsed.host.lowercase() !in ALLOWED_DOWNLOAD_HOSTS ||
+            parsed.userInfo != null || parsed.fragment != null
+        ) throw IOException("Model downloads must use an allowlisted HTTPS host without embedded credentials")
 
         val tmp = File(context.cacheDir, target.name + ".download")
         try {
             downloadClient.newCall(Request.Builder().url(url).build()).execute().use { resp ->
                 if (!resp.isSuccessful) throw IOException("Download failed: HTTP ${resp.code}")
-                if (!resp.request.url.isHttps) throw IOException("Refusing a non-HTTPS model download redirect")
+                if (!resp.request.url.isHttps || resp.request.url.host !in ALLOWED_DOWNLOAD_HOSTS) {
+                    throw IOException("Refusing an untrusted model download redirect")
+                }
                 val body = resp.body ?: throw IOException("Empty download")
                 val total = body.contentLength()
-                if (total > MAX_ARCHIVE_BYTES) throw IOException("Model archive exceeds the download size limit")
+                if (total > MAX_ARCHIVE_BYTES || (total >= 0 && total != expectedSize)) {
+                    throw IOException("Model archive has an unexpected size")
+                }
                 body.byteStream().use { input ->
                     tmp.outputStream().use { out ->
                         val buf = ByteArray(64 * 1024)
@@ -76,7 +96,9 @@ object ModelDownloader {
                             val n = input.read(buf)
                             if (n < 0) break
                             done += n
-                            if (done > MAX_ARCHIVE_BYTES) throw IOException("Model archive exceeds the download size limit")
+                            if (done > MAX_ARCHIVE_BYTES || done > expectedSize) {
+                                throw IOException("Model archive exceeds its expected size")
+                            }
                             out.write(buf, 0, n)
                             val pct = if (total > 0) (done * 90 / total).toInt().coerceIn(0, 90) else 0
                             if (pct != last) { last = pct; progress(pct) }
@@ -84,11 +106,42 @@ object ModelDownloader {
                     }
                 }
             }
+            verifyArchive(tmp, expectedSize, expectedSha256)
             unpack(tmp, target, open)
         } finally {
             tmp.delete()
         }
         progress(100)
+    }
+
+
+    /** Checks a downloaded model archive against a pinned size and, when available, a trusted SHA-256. */
+    internal fun verifyArchive(file: File, expectedSize: Long, expectedSha256: String?) {
+        if (!file.isFile || file.length() != expectedSize) {
+            throw IOException("Model archive size does not match the pinned release metadata")
+        }
+        if (expectedSha256 != null) {
+            if (!Regex("^[a-fA-F0-9]{64}$").matches(expectedSha256)) {
+                throw IOException("Invalid pinned model SHA-256")
+            }
+            val actual = sha256Of(file)
+            if (!actual.equals(expectedSha256, ignoreCase = true)) {
+                throw IOException("Model archive SHA-256 mismatch")
+            }
+        }
+    }
+
+    private fun sha256Of(file: File): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                digest.update(buffer, 0, count)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
     /** Unpacks [file] into [target], dropping the archive's top-level folder. */

@@ -17,8 +17,7 @@ for name in [*ARCH, "universal"]:
             sys.exit(f"{apk}: expected {expected}, found {packaged}")
         for abi in expected:
             required = ["libsherpa-onnx-jni.so", "libonnxruntime.so"]
-            if Path(f"app/src/main/jniLibs/{abi}/libllama_server.so").is_file():
-                required.append("libllama_server.so")
+            required.append("libllama_server.so")
             for library in required:
                 with package.open(f"lib/{abi}/{library}") as binary:
                     header = binary.read(20)

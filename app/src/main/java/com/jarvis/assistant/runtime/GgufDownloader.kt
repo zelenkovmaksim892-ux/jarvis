@@ -10,8 +10,9 @@ import java.security.MessageDigest
 
 /**
  * Downloads one large model file (a GGUF) safely: checks free storage first, resumes an interrupted download from
- * where it stopped, follows redirects only over HTTPS, and verifies the finished file (size, GGUF header and, when the
- * server publishes it, the SHA-256) before it is put in place. A file that is already complete is never downloaded again.
+ * where it stopped, follows redirects only over HTTPS, and requires a trusted SHA-256 (explicitly pinned or supplied
+ * by the model host) before accepting the file. The cached file is checked against its recorded size and modification
+ * time on reuse; the full SHA-256 is calculated after each download.
  * No Android classes, so it is unit-tested on the JVM. Call [download] from a background thread.
  */
 class GgufDownloader(

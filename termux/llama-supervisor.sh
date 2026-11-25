@@ -39,7 +39,8 @@ case "$HELP" in
   *) echo "llama-server has no API-key support. Refusing to start an unauthenticated service." >>"$LOG"; exit 1 ;;
 esac
 
-ARGS=(-m "$MODEL" --host 127.0.0.1 --port "$PORT" -c "$CTX" -t "$THREADS" --api-key "$API_KEY" --no-webui)
+ARGS=(-m "$MODEL" --host 127.0.0.1 --port "$PORT" -c "$CTX" -t "$THREADS" --api-key "$API_KEY")
+case "$HELP" in *--no-webui*) ARGS+=(--no-webui) ;; esac
 case "$HELP" in *--parallel*) ARGS+=(-np "$PARALLEL") ;; esac
 case "$HELP" in *--cache-ram*) ARGS+=(--cache-ram "$CACHE_RAM") ;; esac
 

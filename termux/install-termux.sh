@@ -57,37 +57,50 @@ fi
 sed -i '/^EXTRA_ARGS=/d' "$DEST/llama.conf"
 chmod 600 "$DEST/llama.conf"
 
-echo "3. Allow Jarvis to request this one Termux script"
+echo "3. Allow Jarvis to request the local server script"
 PROPS="$HOME/.termux/termux.properties"
 if [ -f "$PROPS" ] && grep -Eq '^[[:space:]]*allow-external-apps[[:space:]]*=[[:space:]]*true' "$PROPS"; then
-  echo "  already enabled"
+  echo "  external commands are already enabled"
 else
-  backup "$PROPS"
-  if [ -f "$PROPS" ] && grep -Eq '^[[:space:]]*#?[[:space:]]*allow-external-apps' "$PROPS"; then
-    sed -i -E 's/^[[:space:]]*#?[[:space:]]*allow-external-apps.*/allow-external-apps = true/' "$PROPS"
+  read -r -p "Allow Jarvis to request commands from Termux? Other apps with Termux permission may also request commands. [y/N] " allow_external || allow_external=""
+  if [[ "$allow_external" =~ ^[Yy]$ ]]; then
+    backup "$PROPS"
+    if [ -f "$PROPS" ] && grep -Eq '^[[:space:]]*#?[[:space:]]*allow-external-apps' "$PROPS"; then
+      sed -i -E 's/^[[:space:]]*#?[[:space:]]*allow-external-apps.*/allow-external-apps = true/' "$PROPS"
+    else
+      printf '\\nallow-external-apps = true\\n' >>"$PROPS"
+    fi
+    if command -v termux-reload-settings >/dev/null 2>&1; then termux-reload-settings || true; fi
+    echo "  enabled"
   else
-    printf '\nallow-external-apps = true\n' >>"$PROPS"
+    echo "  skipped; Jarvis will not be able to start Termux automatically"
   fi
-  if command -v termux-reload-settings >/dev/null 2>&1; then
-    termux-reload-settings || true
-  fi
-  echo "  enabled"
 fi
 
-echo "4. Configure Termux:Boot (open that app once after installing it)"
-BOOT="$HOME/.termux/boot/start-jarvis"
-backup "$BOOT"
-cat >"$BOOT" <<'BOOTSCRIPT'
+echo "4. Configure Termux:Boot"
+read -r -p "Start the local model automatically after phone reboot? [y/N] " enable_boot || enable_boot=""
+if [[ "$enable_boot" =~ ^[Yy]$ ]]; then
+  BOOT="$HOME/.termux/boot/start-jarvis"
+  backup "$BOOT"
+  cat >"$BOOT" <<'BOOTSCRIPT'
 #!/data/data/com.termux/files/usr/bin/bash
 termux-wake-lock
 bash "$HOME/.jarvis/start-llama.sh"
 BOOTSCRIPT
-chmod 700 "$BOOT"
+  chmod 700 "$BOOT"
+else
+  echo "  autostart not changed"
+fi
 
-echo "5. Starting the local model server"
-bash "$DEST/start-llama.sh"
-sleep 8
-bash "$DEST/status.sh"
+echo "5. Start the local model now"
+read -r -p "Start llama-server now? [y/N] " start_now || start_now=""
+if [[ "$start_now" =~ ^[Yy]$ ]]; then
+  bash "$DEST/start-llama.sh"
+  sleep 8
+  bash "$DEST/status.sh"
+else
+  echo "  server not started"
+fi
 
 API_KEY="$(sed -n 's/^API_KEY="\([a-fA-F0-9]*\)"$/\1/p' "$DEST/llama.conf")"
 cat <<NEXT

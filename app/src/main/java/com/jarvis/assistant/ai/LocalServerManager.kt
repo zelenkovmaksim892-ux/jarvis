@@ -13,7 +13,7 @@ import com.jarvis.assistant.Settings
  * alive, so this checks before every use instead of assuming.
  */
 class LocalServerManager(context: Context, private val settings: Settings) {
-    enum class StartResult { SENT, THROTTLED, DISABLED, NO_TERMUX, NO_PERMISSION, FAILED }
+    enum class StartResult { SENT, THROTTLED, DISABLED, NO_TERMUX, NO_PERMISSION, INVALID_SCRIPT, FAILED }
 
     private val app = context.applicationContext
     private val throttle = StartThrottle(SystemClock::elapsedRealtime)
@@ -38,6 +38,7 @@ class LocalServerManager(context: Context, private val settings: Settings) {
         val result = when {
             !settings.localServerAutoStart -> StartResult.DISABLED
             !isTermuxInstalled() -> StartResult.NO_TERMUX
+            !isAllowedTermuxScriptPath(settings.termuxScriptPath) -> StartResult.INVALID_SCRIPT
             !throttle.tryAcquire() -> StartResult.THROTTLED
             else -> try {
                 val intent = Intent(RUN_COMMAND_ACTION)
@@ -87,6 +88,7 @@ class LocalServerManager(context: Context, private val settings: Settings) {
         StartResult.NO_TERMUX -> "Termux isn't installed, so I can't start the local model."
         StartResult.NO_PERMISSION -> "Jarvis needs the Termux 'run commands' permission to start the local model."
         StartResult.DISABLED -> "The local model isn't running and auto-start is off."
+        StartResult.INVALID_SCRIPT -> "Jarvis refused to run an unrecognized Termux script path."
         StartResult.FAILED, StartResult.SENT, StartResult.THROTTLED ->
             "The local model didn't start. Run the Termux setup once, as described in the install notes."
         null -> "The local model isn't running."
@@ -97,5 +99,9 @@ class LocalServerManager(context: Context, private val settings: Settings) {
         const val TERMUX_PACKAGE = "com.termux"
         const val RUN_COMMAND_ACTION = "com.termux.RUN_COMMAND"
         const val START_WAIT_MS = 30_000L
+
+        /** Only the installer-owned script is allowed; never execute a preference-controlled arbitrary command. */
+        internal fun isAllowedTermuxScriptPath(path: String): Boolean =
+            path == Settings.DEFAULT_TERMUX_SCRIPT
     }
 }

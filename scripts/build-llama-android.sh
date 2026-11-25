@@ -5,7 +5,7 @@
 # and CMAKE_BUILD_PARALLEL_LEVEL can override the defaults.
 set -euo pipefail
 
-REF="${LLAMA_CPP_REF:-b12099}"
+REF="${LLAMA_CPP_REF:-bee23322f1baa3d2dd16b8339bed6aff4a8eb663}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WORK="${LLAMA_WORK_DIR:-$ROOT/build/llama-android}"
 NDK="${ANDROID_NDK_HOME:-${ANDROID_NDK_LATEST_HOME:-${ANDROID_NDK_ROOT:-}}}"
@@ -16,8 +16,21 @@ fi
 if [[ $# == 0 ]]; then set -- arm64-v8a armeabi-v7a x86_64; fi
 
 mkdir -p "$WORK"
+mkdir -p "$WORK/llama.cpp"
 if [[ ! -d "$WORK/llama.cpp/.git" ]]; then
-  git clone --depth 1 --branch "$REF" https://github.com/ggml-org/llama.cpp.git "$WORK/llama.cpp"
+  git -C "$WORK/llama.cpp" init
+fi
+if git -C "$WORK/llama.cpp" remote get-url origin >/dev/null 2>&1; then
+  git -C "$WORK/llama.cpp" remote set-url origin https://github.com/ggml-org/llama.cpp.git
+else
+  git -C "$WORK/llama.cpp" remote add origin https://github.com/ggml-org/llama.cpp.git
+fi
+git -C "$WORK/llama.cpp" fetch --depth 1 origin "$REF"
+git -C "$WORK/llama.cpp" checkout --detach FETCH_HEAD
+ACTUAL_REF="$(git -C "$WORK/llama.cpp" rev-parse HEAD)"
+if [[ "$REF" =~ ^[0-9a-fA-F]{40}$ && "$ACTUAL_REF" != "$REF" ]]; then
+  echo "The llama.cpp checkout does not match the pinned commit." >&2
+  exit 3
 fi
 
 build_abi() (

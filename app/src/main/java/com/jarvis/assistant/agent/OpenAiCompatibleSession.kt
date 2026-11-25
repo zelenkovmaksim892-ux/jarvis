@@ -28,6 +28,12 @@ class OpenAiCompatibleSession(
     toolSpecs: List<ToolSpec>,
 ) : ChatSession {
 
+    init {
+        require(Endpoints.isTransportSafe(config.baseUrl)) {
+            "Remote AI endpoints must use HTTPS; HTTP is permitted only for a server on this device."
+        }
+    }
+
     /** A server on this phone: fail fast when it is down, give it time when it is busy reading a long prompt. */
     private val onPhone = Endpoints.isLoopback(config.baseUrl)
     private val withTools = toolSpecs.isNotEmpty()
@@ -110,8 +116,9 @@ class OpenAiCompatibleSession(
                 val text = resp.body?.string().orEmpty()
                 val bodyReadAt = SystemClock.elapsedRealtime()
                 if (!resp.isSuccessful) {
-                    Log.e("JarvisAPI", "HTTP ${resp.code}: $text")
-                    throw IOException("HTTP ${resp.code} from ${config.preset.label}: ${text.take(500)}")
+                    // Provider error bodies may echo prompts or account details; never write them to Logcat.
+                    Log.e("JarvisAPI", "HTTP ${resp.code} from ${config.preset.id}; response body omitted")
+                    throw IOException("HTTP ${resp.code} from ${config.preset.label}")
                 }
                 val parsed = JSONObject(text)
                 val parsedAt = SystemClock.elapsedRealtime()
@@ -197,9 +204,9 @@ class OpenAiCompatibleSession(
         try {
             call.execute().use { resp ->
                 if (!resp.isSuccessful) {
-                    val err = resp.body?.string().orEmpty()
-                    Log.e("JarvisAPI", "HTTP ${resp.code}: $err")
-                    throw IOException("HTTP ${resp.code} from ${config.preset.label}: ${err.take(500)}")
+                    // Provider error bodies may echo prompts or account details; never write them to Logcat.
+                    Log.e("JarvisAPI", "HTTP ${resp.code} from ${config.preset.id}; response body omitted")
+                    throw IOException("HTTP ${resp.code} from ${config.preset.label}")
                 }
                 val reader = (resp.body ?: throw IOException("Empty response")).byteStream().bufferedReader()
                 while (true) {

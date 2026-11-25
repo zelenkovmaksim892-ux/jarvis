@@ -98,6 +98,7 @@ android {
 val sherpaVersion = "1.13.8"
 val sherpaAar = file("libs/sherpa-onnx-$sherpaVersion.aar")
 val sherpaSha256 = "633c24321e06b1fe79feafa03ea16cbc0f8a286641e2da3559bac91bdb13bd96"
+val sherpaSize = 50_129_134L
 
 val fetchSherpaOnnx by tasks.registering {
     description = "Downloads the sherpa-onnx Android library from its GitHub releases."
@@ -108,14 +109,55 @@ val fetchSherpaOnnx by tasks.registering {
         logger.lifecycle("Downloading $url")
         val part = File(sherpaAar.path + ".part")
         sherpaAar.parentFile.mkdirs()
-        URI(url).toURL().openStream().use { input -> part.outputStream().use { input.copyTo(it) } }
-        val digest = MessageDigest.getInstance("SHA-256").digest(part.readBytes())
-            .joinToString("") { "%02x".format(it) }
+        val connection = URI(url).toURL().openConnection() as java.net.HttpURLConnection
+        connection.instanceFollowRedirects = true
+        connection.connectTimeout = 15_000
+        connection.readTimeout = 30_000
+        try {
+            if (connection.responseCode != java.net.HttpURLConnection.HTTP_OK) {
+                throw GradleException("sherpa-onnx download failed with HTTP ${connection.responseCode}")
+            }
+            if (!connection.url.protocol.equals("https", ignoreCase = true) ||
+                connection.url.host !in setOf("github.com", "release-assets.githubusercontent.com")
+            ) throw GradleException("Refusing an untrusted sherpa-onnx download redirect")
+            if (connection.contentLengthLong != sherpaSize) {
+                throw GradleException("sherpa-onnx archive size does not match pinned release metadata")
+            }
+            connection.inputStream.use { input ->
+                part.outputStream().use { output ->
+                    val buffer = ByteArray(64 * 1024)
+                    var copied = 0L
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        copied += count
+                        if (copied > sherpaSize) throw GradleException("sherpa-onnx archive exceeds pinned size")
+                        output.write(buffer, 0, count)
+                    }
+                    if (copied != sherpaSize) throw GradleException("sherpa-onnx archive is incomplete")
+                }
+            }
+        } catch (e: Exception) {
+            part.delete()
+            throw e
+        } finally {
+            connection.disconnect()
+        }
+        val md = MessageDigest.getInstance("SHA-256")
+        part.inputStream().use { input ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                md.update(buffer, 0, count)
+            }
+        }
+        val digest = md.digest().joinToString("") { "%02x".format(it) }
         if (digest != sherpaSha256) {
             part.delete()
             throw GradleException("sherpa-onnx download is corrupt (sha256 $digest)")
         }
-        part.renameTo(sherpaAar)
+        if (!part.renameTo(sherpaAar)) throw GradleException("Could not install verified sherpa-onnx archive")
     }
 }
 
