@@ -8,7 +8,6 @@ package com.jarvis.assistant.agent
 object SensitiveActions {
     private val SENSITIVE = Regex(
         """^\s*(?:(send|call|dial|post|tweet|publish|share|reply|pay|transfer|place order|buy now|confirm payment|delete|submit)\b|отправ|позвон|оплат|перев|удал|покуп|публикац|подтверж|спис|вывест)""",
-        RegexOption.IGNORE_CASE,
     )
     private val YES = Regex(
         """\b(yes|yeah|yep|yup|sure|ok|okay|confirm|confirmed|go ahead|do it|send it|haan|han|ha|theek hai|thik hai|kar do|bhej do)\b""",
@@ -21,7 +20,7 @@ object SensitiveActions {
     private val NO_RUSSIAN = listOf("нет", "не надо", "не отправляй", "не звони", "отмена", "подожди", "стоп")
 
     /** True if tapping a control with this label sends, places or deletes something. */
-    fun needsConfirmation(label: String): Boolean = label.isNotBlank() && SENSITIVE.containsMatchIn(label)
+    fun needsConfirmation(label: String): Boolean = label.isNotBlank() && SENSITIVE.containsMatchIn(label.lowercase(java.util.Locale.ROOT))
 
     /** Match a complete word or phrase, never a fragment inside an unrelated word (e.g. "да" in "задача"). */
     private fun containsPhrase(text: String, phrase: String): Boolean {
