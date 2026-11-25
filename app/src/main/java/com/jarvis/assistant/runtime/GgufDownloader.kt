@@ -42,7 +42,8 @@ class GgufDownloader(
     private val marker = File(dest.path + ".ok")
 
     /** True when [dest] was fully downloaded and verified earlier (and nothing has changed it since). */
-    fun isComplete(): Boolean = try {
+    fun isComplete(): Boolean {
+        return try {
         if (!dest.isFile || !marker.isFile || !hasGgufHeader(dest)) return false
         val parts = marker.readText().trim().split(':')
         if (parts.size != 3) return false
@@ -55,8 +56,9 @@ class GgufDownloader(
         if (expectedSize != null && dest.length() != expectedSize) return false
         if (expectedSha256 != null && !recordedSha.equals(expectedSha256, ignoreCase = true)) return false
         true
-    } catch (_: Exception) {
-        false
+        } catch (_: Exception) {
+            false
+        }
     }
 
     fun download(onProgress: (done: Long, total: Long) -> Unit = { _, _ -> }, onPhase: (String) -> Unit = {}): Result {

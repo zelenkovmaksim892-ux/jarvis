@@ -101,6 +101,15 @@ class TaskIslandTest {
         assertEquals(View.GONE, root.findViewById<View>(R.id.expanded).visibility)
     }
 
+
+    @Test
+    fun obscuredApprovalTouchesAreRejected() {
+        assertFalse(TaskIsland.isObscuredTouch(0, 35))
+        assertTrue(TaskIsland.isObscuredTouch(android.view.MotionEvent.FLAG_WINDOW_IS_OBSCURED, 35))
+        assertTrue(TaskIsland.isObscuredTouch(android.view.MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED, 35))
+        assertFalse(TaskIsland.isObscuredTouch(android.view.MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED, 28))
+    }
+
     @Test
     fun approvalCardRequiresAnExplicitButton() {
         val service = Robolectric.buildService(JarvisAccessibilityService::class.java).create().get()
@@ -117,6 +126,8 @@ class TaskIslandTest {
         val root = views(service).single()
         idle(800)
         assertEquals(View.VISIBLE, root.findViewById<View>(R.id.approvalPanel).visibility)
+        assertTrue(root.findViewById<View>(R.id.approvalAllow).filterTouchesWhenObscured)
+        assertTrue(root.findViewById<View>(R.id.approvalDeny).filterTouchesWhenObscured)
         assertEquals(View.VISIBLE, root.findViewById<View>(R.id.expPrimary).visibility) // Emergency Stop stays available.
         assertEquals("Нажать кнопку отправки в WhatsApp", text(root, R.id.approvalDetails))
         assertFalse(allowed)

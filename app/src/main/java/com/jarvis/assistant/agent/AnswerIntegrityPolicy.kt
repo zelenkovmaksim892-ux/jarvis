@@ -10,7 +10,7 @@ package com.jarvis.assistant.agent
 object AnswerIntegrityPolicy {
     private const val MARKER = "[JARVIS_ANSWER_INTEGRITY_POLICY_V1]"
 
-    private const val RULES = """
+    private val RULES = """
 $MARKER
 ANSWER INTEGRITY AND EVIDENCE RULES:
 - Never claim "100% correct", "guaranteed", "independently verified", or "cross-checked" unless the available evidence actually supports that exact statement.

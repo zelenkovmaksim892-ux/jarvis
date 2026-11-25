@@ -165,7 +165,7 @@ object ModelDownloader {
                     if (entryCount > MAX_ARCHIVE_ENTRIES) throw IOException("Model archive contains too many entries")
 
                     val name = entry.name
-                    if (name.isBlank() || name.startsWith("/") || '\\\\' in name ||
+                    if (name.isBlank() || name.startsWith("/") || name.contains("\\") ||
                         name.contains('\u0000') || Regex("^[A-Za-z]:").containsMatchIn(name)
                     ) throw IOException("Unsafe model archive path")
 

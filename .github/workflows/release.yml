@@ -99,6 +99,8 @@ jobs:
           ./gradlew testDebugUnitTest lintDebug
           PYTHONPATH=trading-engine python3 -m unittest discover -s trading-engine/tests -v
           python3 agents/validate_catalog.py
+          python3 scripts/scan_secrets.py
+          python3 -m unittest discover -s scripts/tests -v
 
       - name: Build unsigned release APKs
         run: |

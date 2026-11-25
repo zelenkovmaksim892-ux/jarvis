@@ -13,9 +13,9 @@ Jarvis is designed to fail closed when a trust check fails. This document descri
 - The Termux model server is forced to bind to 127.0.0.1, requires a generated API key, and refuses to start if the llama-server binary does not support API-key authentication.
 - Jarvis can start only the installer-owned Termux script. It cannot execute an arbitrary preference-controlled path.
 - Screen text, messages, notifications, and web pages are treated as untrusted content. They cannot grant permission or change agent rules.
-- Every phone-control action and every screen-data transfer requires a visible approval. Coordinate taps, long presses, and submit-by-enter actions require an additional confirmation.
+- Every phone-control action and every screen-data transfer requires a visible approval. Coordinate taps, long presses, and submit-by-enter actions require an additional confirmation. Approval buttons reject touches obscured by other windows to reduce tapjacking risk.
 - Provider error bodies are not written to Logcat.
-- GitHub Actions are pinned to commit SHAs. CI uses read-only repository permissions, checks the Gradle wrapper, builds native runtimes, and runs tests. CodeQL, dependency review, and Dependabot are configured.
+- GitHub Actions are pinned to commit SHAs. CI uses read-only repository permissions, checks the Gradle wrapper, builds native runtimes, runs tests, and scans tracked files for common credential formats without printing matched values. CodeQL, dependency review, and Dependabot are configured.
 - Release publication is manual, requires an explicit confirmation input, accepts only tags reachable from master, and signs APKs with Android's `apksigner` after Gradle has finished. The signing key is not exposed to Gradle scripts or plugins. APK building is separated from the job that receives release-write permission.
 
 ## Known limitations
@@ -23,6 +23,7 @@ Jarvis is designed to fail closed when a trust check fails. This document descri
 - The upstream wake-word archive does not currently expose a machine-readable SHA-256 in the release metadata used by this project. Its HTTPS source and exact archive size are checked, but a cryptographic digest is not yet pinned.
 - A compromised Android OS, rooted device, malicious accessibility service, compromised provider account, or malicious code already running with Jarvis's app UID can bypass some app-level protections.
 - A user can still approve a harmful action after being shown its details. Approval prompts reduce risk; they cannot replace judgment.
+- The lightweight CI secret scanner checks the current tracked tree, not every historical Git blob. Enable GitHub Secret Scanning in repository settings if the repository plan supports it.
 - CodeQL, dependency review, and CI are configured but their first successful GitHub Actions runs have not yet been observed.
 - The `production-release` GitHub environment should be configured in repository settings with required reviewers if an additional human approval is desired before publication.
 

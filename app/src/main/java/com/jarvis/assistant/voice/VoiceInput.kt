@@ -28,7 +28,6 @@ import java.io.File
 object WakeModel {
     const val URL = "https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01.tar.bz2"
     const val ARCHIVE_SIZE = 17_626_723L
-    const val ARCHIVE_SIZE = 17_626_723L
     const val ENCODER = "encoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx"
     const val DECODER = "decoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx"
     const val JOINER = "joiner-epoch-12-avg-2-chunk-16-left-64.int8.onnx"
@@ -44,8 +43,6 @@ object WakeModel {
 /** Offline English speech recognition for commands (Kroko streaming zipformer, ~70 MB). */
 object SpeechModel {
     const val URL = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06.tar.bz2"
-    const val ARCHIVE_SIZE = 57_267_600L
-    const val ARCHIVE_SHA256 = "c8676e5ff9ac2a85296e53ee0fd4d5fb1db6770e7a7647166eeafe349ade6834"
     const val ARCHIVE_SIZE = 57_267_600L
     const val ARCHIVE_SHA256 = "c8676e5ff9ac2a85296e53ee0fd4d5fb1db6770e7a7647166eeafe349ade6834"
     val KEEP_FILES = setOf("encoder.onnx", "decoder.onnx", "joiner.onnx", "tokens.txt")

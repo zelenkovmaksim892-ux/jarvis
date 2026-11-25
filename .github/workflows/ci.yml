@@ -15,7 +15,7 @@ env:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -85,6 +85,12 @@ jobs:
 
       - name: Run Python tests
         run: PYTHONPATH=trading-engine python -m unittest discover -s trading-engine/tests -v
+
+      - name: Scan tracked files for leaked credentials
+        run: python3 scripts/scan_secrets.py
+
+      - name: Test the secret scanner
+        run: python3 -m unittest discover -s scripts/tests -v
 
       - name: Validate agent catalog safety
         run: python3 agents/validate_catalog.py

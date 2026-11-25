@@ -261,7 +261,12 @@ class OpenAiCompatibleSession(
     companion object {
         private const val KEEP_FULL_OBSERVATIONS = 1
         const val SCREEN_MARKER = "=== SCREEN"
-        private val SHARED_CLIENT: OkHttpClient by lazy { OkHttpClient.Builder().build() }
+        private val SHARED_CLIENT: OkHttpClient by lazy {
+            OkHttpClient.Builder()
+                .followRedirects(false)
+                .followSslRedirects(false)
+                .build()
+        }
 
         /** The OpenAI "tools" array for [specs]. Also used to warm the local model's prompt cache. */
         fun toolsJson(specs: List<ToolSpec>): JSONArray = JSONArray().apply {

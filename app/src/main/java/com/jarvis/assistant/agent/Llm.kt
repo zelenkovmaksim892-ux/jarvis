@@ -2,6 +2,7 @@ package com.jarvis.assistant.agent
 
 import com.jarvis.assistant.ApiKind
 import com.jarvis.assistant.ProviderConfig
+import com.jarvis.assistant.ai.Endpoints
 import org.json.JSONObject
 
 /** A tool the model can call, described with a JSON schema. Provider-neutral. */

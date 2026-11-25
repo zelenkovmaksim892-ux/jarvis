@@ -97,21 +97,46 @@ val fetchSherpaOnnx by tasks.registering {
         logger.lifecycle("Downloading $url")
         val part = File(sherpaAar.path + ".part")
         sherpaAar.parentFile.mkdirs()
-        val connection = URI(url).toURL().openConnection() as HttpURLConnection
-        connection.instanceFollowRedirects = true
-        connection.connectTimeout = 15_000
-        connection.readTimeout = 30_000
+        val allowedHosts = setOf("github.com", "release-assets.githubusercontent.com")
+        var currentUrl = URI(url).toURL()
+        if (!currentUrl.protocol.equals("https", ignoreCase = true) || currentUrl.host !in allowedHosts) {
+            throw GradleException("Refusing an untrusted sherpa-onnx source URL")
+        }
+        var connection: HttpURLConnection? = null
+        var redirects = 0
         try {
-            if (connection.responseCode != HttpURLConnection.HTTP_OK) {
-                throw GradleException("sherpa-onnx download failed with HTTP ${connection.responseCode}")
+            while (true) {
+                val candidate = currentUrl.openConnection() as HttpURLConnection
+                candidate.instanceFollowRedirects = false
+                candidate.connectTimeout = 15_000
+                candidate.readTimeout = 30_000
+                connection = candidate
+                val status = candidate.responseCode
+                if (status in 300..399) {
+                    val location = candidate.getHeaderField("Location")
+                    candidate.disconnect()
+                    connection = null
+                    if (location.isNullOrBlank() || ++redirects > 3) {
+                        throw GradleException("Invalid or excessive sherpa-onnx download redirects")
+                    }
+                    val nextUrl = URI(currentUrl.toString()).resolve(location).toURL()
+                    if (!nextUrl.protocol.equals("https", ignoreCase = true) || nextUrl.host !in allowedHosts) {
+                        throw GradleException("Refusing an untrusted sherpa-onnx download redirect")
+                    }
+                    currentUrl = nextUrl
+                    continue
+                }
+                break
             }
-            if (!connection.url.protocol.equals("https", ignoreCase = true) ||
-                connection.url.host !in setOf("github.com", "release-assets.githubusercontent.com")
-            ) throw GradleException("Refusing an untrusted sherpa-onnx download redirect")
-            if (connection.contentLengthLong != sherpaSize) {
+
+            val response = connection ?: throw GradleException("sherpa-onnx download connection was not established")
+            if (response.responseCode != HttpURLConnection.HTTP_OK) {
+                throw GradleException("sherpa-onnx download failed with HTTP ${response.responseCode}")
+            }
+            if (response.contentLengthLong != sherpaSize) {
                 throw GradleException("sherpa-onnx archive size does not match pinned release metadata")
             }
-            connection.inputStream.use { input ->
+            response.inputStream.use { input ->
                 part.outputStream().use { output ->
                     val buffer = ByteArray(64 * 1024)
                     var copied = 0L
@@ -129,7 +154,7 @@ val fetchSherpaOnnx by tasks.registering {
             part.delete()
             throw e
         } finally {
-            connection.disconnect()
+            connection?.disconnect()
         }
         val md = MessageDigest.getInstance("SHA-256")
         part.inputStream().use { input ->

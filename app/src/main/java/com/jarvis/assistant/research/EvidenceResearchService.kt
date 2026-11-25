@@ -159,9 +159,13 @@ class EvidenceResearchService(
         require(addresses.isNotEmpty() && addresses.none(::isNonPublicAddress)) {
             "Source host resolves to a local, private, or otherwise non-public address."
         }
-        val pinnedClient = client.newBuilder().dns(Dns { requestedHost ->
-            if (!requestedHost.equals(host, ignoreCase = true)) throw UnknownHostException("Unapproved secondary hostname.")
-            addresses
+        val pinnedClient = client.newBuilder().dns(object : Dns {
+            override fun lookup(hostname: String): List<InetAddress> {
+                if (!hostname.equals(host, ignoreCase = true)) {
+                    throw UnknownHostException("Unapproved secondary hostname.")
+                }
+                return addresses
+            }
         }).followRedirects(false).followSslRedirects(false).build()
         val request = Request.Builder()
             .url(uri.toString())

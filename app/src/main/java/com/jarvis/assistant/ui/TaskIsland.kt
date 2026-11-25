@@ -228,6 +228,8 @@ class TaskIsland(private val service: AccessibilityService) {
                     else -> R.drawable.ic_touch
                 }
             )
+            protectApprovalButton(b.approvalAllow)
+            protectApprovalButton(b.approvalDeny)
             b.approvalAllow.setOnClickListener { resolveApproval(true) }
             b.approvalDeny.setOnClickListener { resolveApproval(false) }
         }
@@ -250,6 +252,14 @@ class TaskIsland(private val service: AccessibilityService) {
         }
         b.expSecondary.setText(R.string.open_jarvis)
         b.expSecondary.setOnClickListener { openApp() }
+    }
+
+    /** Reject approval taps obscured by another window (tapjacking / overlay attacks). */
+    private fun protectApprovalButton(button: View) {
+        button.filterTouchesWhenObscured = true
+        button.setOnTouchListener { _, event ->
+            isObscuredTouch(event.flags, Build.VERSION.SDK_INT)
+        }
     }
 
     private fun openApp() {
@@ -370,6 +380,11 @@ class TaskIsland(private val service: AccessibilityService) {
     }
 
     companion object {
+        internal fun isObscuredTouch(flags: Int, sdk: Int): Boolean {
+            val partialFlag = if (sdk >= 29) MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED else 0
+            return flags and (MotionEvent.FLAG_WINDOW_IS_OBSCURED or partialFlag) != 0
+        }
+
         /**
          * Places the pill just below the status bar and camera cut-out, so it never covers the
          * notification icons or the camera.
