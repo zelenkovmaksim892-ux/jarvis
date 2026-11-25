@@ -280,7 +280,7 @@ class PhoneAgent(
     private fun contextNotes(task: String, profile: ModelProfile): String {
         val now = SimpleDateFormat("EEEE d MMMM yyyy, HH:mm", Locale.getDefault()).format(Date())
         // Personal notes stay on-device unless the user explicitly allows sharing with cloud models.
-        val mayShareNotes = Endpoints.isLocal(profile.baseUrl) || settings.shareMemoryWithCloud
+        val mayShareNotes = Endpoints.isLoopback(profile.baseUrl) || settings.shareMemoryWithCloud
         val notes = settings.personalNotes.trim().takeIf { mayShareNotes }.orEmpty()
         val memory = gate.memoryContext(task, profile)
         return buildString {
