@@ -20,7 +20,7 @@ class ModelDownloaderTest {
         TarArchiveOutputStream(BZip2CompressorOutputStream(f.outputStream())).use { tar ->
             for ((name, content) in entries) {
                 val bytes = content?.toByteArray() ?: ByteArray(0)
-                tar.putArchiveEntry(TarArchiveEntry(name).apply { size = bytes.size.toLong() })
+                tar.putArchiveEntry(TarArchiveEntry(name, true).apply { size = bytes.size.toLong() })
                 tar.write(bytes)
                 tar.closeArchiveEntry()
             }
