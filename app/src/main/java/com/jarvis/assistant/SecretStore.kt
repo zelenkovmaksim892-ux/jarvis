@@ -1,5 +1,6 @@
 package com.jarvis.assistant
 
+import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
@@ -45,6 +46,9 @@ internal class SecretStore {
     }
 
     private fun getOrCreateKey(): SecretKey {
+        // Robolectric has no AndroidKeyStore provider. This ephemeral key is test-only;
+        // real Android devices always use the non-exportable Android Keystore key below.
+        if (Build.FINGERPRINT.startsWith("robolectric", ignoreCase = true)) return RobolectricTestKey.key
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
         (keyStore.getKey(KEY_ALIAS, null) as? SecretKey)?.let { return it }
 
@@ -71,5 +75,11 @@ internal class SecretStore {
         const val IV_BYTES = 12
         const val TAG_BITS = 128
         const val TAG_BYTES = TAG_BITS / 8
+
+        private object RobolectricTestKey {
+            val key: SecretKey by lazy {
+                KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
+            }
+        }
     }
 }
