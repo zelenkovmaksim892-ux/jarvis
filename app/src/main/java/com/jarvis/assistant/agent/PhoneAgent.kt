@@ -32,6 +32,16 @@ interface AgentHost {
 
 data class AgentResult(val success: Boolean, val summary: String)
 
+/** Extra confirmation for actions whose coordinates or submission semantics cannot be inferred safely. */
+internal fun requiresSecondConfirmation(action: String, args: JSONObject, details: String): Boolean {
+    if (action == "tap_point" || action == "long_press") return true
+    if (action == "type_text" && args.optBoolean("press_enter")) return true
+    if (action != "tap") return false
+    return Regex(
+        "(?i)\\b(send|call|dial|pay|payment|transfer|delete|purchase|buy|publish|submit|confirm)\\b|отправ|позвон|оплат|перевод|удал|покуп|публикац"
+    ).containsMatchIn(details)
+}
+
 /**
  * Observe the screen, ask the model for the next action, perform it, repeat - until the model
  * calls `finish`, the step budget runs out, or the person cancels.
@@ -168,8 +178,8 @@ class PhoneAgent(
                     val contextUnchanged = expectedScreen != null && expectedScreen.foregroundPackage == screenBeforeApproval.foregroundPackage && expectedScreen.text == screenBeforeApproval.text
                     val details = approvalDescription(call, a11y)
                     val firstApproval = host.approveAction(call.name.replace('_', ' ').replaceFirstChar { it.uppercase() }, details)
-                    val highRisk = call.name == "tap" && Regex("(?i)\\b(send|call|dial|pay|payment|transfer|delete|purchase|buy|publish|submit|confirm)\\b|отправ|позвон|оплат|перевод|удал|покуп|публикац").containsMatchIn(details)
-                    val approved = firstApproval && (!highRisk || host.approveAction("Повторное подтверждение", "Это потенциально необратимое действие. Ещё раз проверь детали и подтверди: $details"))
+                    val highRisk = requiresSecondConfirmation(call.name, call.arguments, details)
+                    val approved = firstApproval && (!highRisk || host.approveAction("Повторное подтверждение", "Это действие может быть необратимым. Ещё раз проверь детали и подтверди: $details"))
                     val screenAfterApproval = if (approved) a11y.readScreen(if (compact) COMPACT_ELEMENTS else 300) else screenBeforeApproval
                     val sameScreen = contextUnchanged && screenBeforeApproval.foregroundPackage == screenAfterApproval.foregroundPackage &&
                         screenBeforeApproval.text == screenAfterApproval.text

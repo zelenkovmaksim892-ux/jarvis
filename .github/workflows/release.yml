@@ -1,20 +1,54 @@
 name: Release
 
 on:
-  push:
-    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing semantic-version tag on master (for example v1.0.0)"
+        required: true
+        type: string
+      confirm_publish:
+        description: "I have reviewed the commit and approve publishing this release"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   LLAMA_CPP_REF: b12099
 
 jobs:
-  release:
+  build:
+    if: inputs.confirm_publish == true
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout selected tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Validate release tag and source branch
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "Tag must use vMAJOR.MINOR.PATCH format."
+            exit 1
+          }
+          git fetch origin master --no-tags
+          TAG_COMMIT="$(git rev-parse "$RELEASE_TAG^{commit}")"
+          git merge-base --is-ancestor "$TAG_COMMIT" origin/master || {
+            echo "Refusing to publish code that is not reachable from master."
+            exit 1
+          }
+          test "$TAG_COMMIT" = "$GITHUB_SHA"
 
       - uses: actions/setup-java@v4
         with:
@@ -33,7 +67,6 @@ jobs:
       - name: Build on-device model runtimes
         id: llama-build
         if: steps.llama-cache.outputs.cache-hit != 'true'
-        continue-on-error: true
         run: bash scripts/build-llama-android.sh
 
       - name: Cache completed native builds
@@ -43,39 +76,71 @@ jobs:
           path: app/src/main/jniLibs/*/libllama_server.so
           key: ${{ steps.llama-cache.outputs.cache-primary-key }}
 
-      - name: Run tests
-        run: ./gradlew testDebugUnitTest
+      - name: Run tests and lint
+        run: |
+          ./gradlew testDebugUnitTest lintDebug
+          PYTHONPATH=trading-engine python3 -m unittest discover -s trading-engine/tests -v
+          python3 agents/validate_catalog.py
 
-      - name: Build signed release APK
-        if: ${{ env.KEYSTORE_BASE64 != '' }}
+      - name: Require configured release signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          test -n "$KEYSTORE_BASE64" || {
+            echo "A release signing key is required. Refusing to publish an unsigned debug APK."
+            exit 1
+          }
+
+      - name: Build signed release APKs
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           JARVIS_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           JARVIS_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           JARVIS_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
+          set -euo pipefail
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          chmod 600 "$RUNNER_TEMP/release.jks"
           JARVIS_KEYSTORE="$RUNNER_TEMP/release.jks" ./gradlew assembleRelease
           python3 scripts/check-apk-abis.py release
+          mkdir -p release-assets
           for abi in arm64-v8a armeabi-v7a x86_64; do
-            cp "app/build/outputs/apk/release/app-${abi}-release.apk" "Jarvis-${GITHUB_REF_NAME}-${abi}.apk"
+            cp "app/build/outputs/apk/release/app-${abi}-release.apk" "release-assets/Jarvis-${RELEASE_TAG}-${abi}.apk"
           done
-          cp app/build/outputs/apk/release/app-universal-release.apk "Jarvis-${GITHUB_REF_NAME}.apk"
+          cp app/build/outputs/apk/release/app-universal-release.apk "release-assets/Jarvis-${RELEASE_TAG}.apk"
+          rm -f "$RUNNER_TEMP/release.jks"
 
-      - name: Build debug APK (no signing key configured)
-        if: ${{ env.KEYSTORE_BASE64 == '' }}
-        run: |
-          ./gradlew assembleDebug
-          python3 scripts/check-apk-abis.py debug
-          for abi in arm64-v8a armeabi-v7a x86_64; do
-            cp "app/build/outputs/apk/debug/app-${abi}-debug.apk" "Jarvis-${GITHUB_REF_NAME}-${abi}.apk"
-          done
-          cp app/build/outputs/apk/debug/app-universal-debug.apk "Jarvis-${GITHUB_REF_NAME}.apk"
+      - name: Upload signed release APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-release-apks
+          path: release-assets/*.apk
+          if-no-files-found: error
+          retention-days: 3
 
-      - name: Publish release
+  publish:
+    if: inputs.confirm_publish == true
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-release
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Download signed APKs
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-release-apks
+          path: release-assets
+
+      - name: Publish reviewed release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" Jarvis-"${GITHUB_REF_NAME}"*.apk --title "Jarvis $GITHUB_REF_NAME" --generate-notes
-
-    env:
-      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_TAG" release-assets/*.apk \
+            --title "Jarvis $RELEASE_TAG" --generate-notes

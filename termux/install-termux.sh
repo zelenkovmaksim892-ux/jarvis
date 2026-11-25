@@ -1,43 +1,63 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# One-time setup, run inside Termux:   bash install-termux.sh
-# - installs the start/supervisor scripts into ~/.jarvis
-# - lets the Jarvis app start them (Termux "allow-external-apps")
-# - makes Termux:Boot start the server after a reboot
-# Existing files are backed up with a .bak-<time> suffix before they are changed. Nothing is deleted.
-set -u
+# One-time setup. Existing config and scripts are backed up before changes.
+set -euo pipefail
+
 SRC="$(cd "$(dirname "$0")" && pwd)"
 DEST="$HOME/.jarvis"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
-backup() { [ -e "$1" ] && cp -p "$1" "$1.bak-$STAMP" && echo "  backed up $1"; }
+backup() {
+  if [ -e "$1" ]; then
+    cp -p "$1" "$1.bak-$STAMP"
+    echo "  backed up $1"
+  fi
+}
 
 mkdir -p "$DEST" "$HOME/.termux/boot"
 
-echo "1. Scripts -> $DEST"
+echo "1. Installing private server scripts"
 for f in llama-supervisor.sh start-llama.sh status.sh; do
   backup "$DEST/$f"
-  cp "$SRC/$f" "$DEST/$f" && chmod 700 "$DEST/$f"
+  cp "$SRC/$f" "$DEST/$f"
+  chmod 700 "$DEST/$f"
 done
 
-echo "2. Settings -> $DEST/llama.conf"
-if [ -f "$DEST/llama.conf" ]; then
-  echo "  kept your existing llama.conf"
-else
+echo "2. Securing local model configuration"
+if [ ! -f "$DEST/llama.conf" ]; then
   cat >"$DEST/llama.conf" <<CONF
-# Local model server settings. Edit, then run: bash ~/.jarvis/start-llama.sh (after stopping the old session).
+# Local model server settings. Edit only if you understand the security implications.
 MODEL="\$HOME/jarvis/models/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf"
 HOST=127.0.0.1
 PORT=8080
-CTX=4096        # prompt + answer budget. The phone-control prompt is long; 2048 was too small for it.
+CTX=4096
 THREADS=4
-PARALLEL=1      # one conversation at a time: less memory, and the prompt cache stays warm
-CACHE_RAM=512   # MiB of prompt cache (llama.cpp's default is far larger than this phone's free RAM)
-EXTRA_ARGS=""
+PARALLEL=1
+CACHE_RAM=512
 CONF
-  echo "  wrote defaults (model path: ~/jarvis/models/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf)"
 fi
 
-echo "3. Let the Jarvis app start the server (allow-external-apps)"
+if ! grep -Eq '^API_KEY="[a-fA-F0-9]{64}"$' "$DEST/llama.conf"; then
+  backup "$DEST/llama.conf"
+  NEW_API_KEY="$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')"
+  if [ "${#NEW_API_KEY}" -ne 64 ]; then
+    echo "Could not generate a local API key." >&2
+    exit 1
+  fi
+  sed -i '/^API_KEY=/d' "$DEST/llama.conf"
+  printf 'API_KEY="%s"\n' "$NEW_API_KEY" >>"$DEST/llama.conf"
+fi
+
+# Do not allow a config edit to expose the model server on Wi-Fi or mobile networks.
+if grep -q '^HOST=' "$DEST/llama.conf"; then
+  sed -i 's/^HOST=.*/HOST=127.0.0.1/' "$DEST/llama.conf"
+else
+  printf '\nHOST=127.0.0.1\n' >>"$DEST/llama.conf"
+fi
+# Arbitrary command-line flags could override the bind address or disable protections.
+sed -i '/^EXTRA_ARGS=/d' "$DEST/llama.conf"
+chmod 600 "$DEST/llama.conf"
+
+echo "3. Allow Jarvis to request this one Termux script"
 PROPS="$HOME/.termux/termux.properties"
 if [ -f "$PROPS" ] && grep -Eq '^[[:space:]]*allow-external-apps[[:space:]]*=[[:space:]]*true' "$PROPS"; then
   echo "  already enabled"
@@ -48,29 +68,38 @@ else
   else
     printf '\nallow-external-apps = true\n' >>"$PROPS"
   fi
-  command -v termux-reload-settings >/dev/null 2>&1 && termux-reload-settings
+  if command -v termux-reload-settings >/dev/null 2>&1; then
+    termux-reload-settings || true
+  fi
   echo "  enabled"
 fi
 
-echo "4. Start after reboot (needs the Termux:Boot app, opened once)"
+echo "4. Configure Termux:Boot (open that app once after installing it)"
 BOOT="$HOME/.termux/boot/start-jarvis"
 backup "$BOOT"
-cat >"$BOOT" <<BOOTSCRIPT
+cat >"$BOOT" <<'BOOTSCRIPT'
 #!/data/data/com.termux/files/usr/bin/bash
 termux-wake-lock
-bash "\$HOME/.jarvis/start-llama.sh"
+bash "$HOME/.jarvis/start-llama.sh"
 BOOTSCRIPT
 chmod 700 "$BOOT"
 
-echo "5. Starting the server now"
+echo "5. Starting the local model server"
 bash "$DEST/start-llama.sh"
 sleep 8
 bash "$DEST/status.sh"
 
-cat <<'NEXT'
+API_KEY="$(sed -n 's/^API_KEY="\([a-fA-F0-9]*\)"$/\1/p' "$DEST/llama.conf")"
+cat <<NEXT
 
-Done. Two things Android asks you to do yourself:
-  a) Settings > Apps > Jarvis > Permissions > Additional permissions: allow "Run commands in Termux environment".
-  b) Settings > Battery: set both Termux and Jarvis to "Unrestricted" (and allow auto-launch / background activity on Realme).
-Check at any time with:  bash ~/.jarvis/status.sh
+Setup finished. Android still requires your approval for:
+  a) Jarvis > Permissions > "Run commands in Termux environment".
+  b) Battery settings for Jarvis and Termux, if Android stops background work.
+
+Check status with: bash ~/.jarvis/status.sh
+
+Local model API key (paste into the Jarvis local model profile):
+$API_KEY
+
+Keep this key private. The model server is restricted to 127.0.0.1.
 NEXT

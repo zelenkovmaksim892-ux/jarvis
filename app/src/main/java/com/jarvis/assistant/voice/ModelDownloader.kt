@@ -9,9 +9,22 @@ import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.net.URI
 
-/** Downloads and unpacks the on-device voice models. */
+/** Downloads and unpacks the on-device voice models with bounded, traversal-safe extraction. */
 object ModelDownloader {
+
+    private const val MAX_ARCHIVE_BYTES = 512L * 1024 * 1024
+    private const val MAX_EXPANDED_BYTES = 2L * 1024 * 1024 * 1024
+    private const val MAX_ARCHIVE_ENTRIES = 10_000
+
+    private val downloadClient by lazy {
+        OkHttpClient.Builder()
+            .followRedirects(true)
+            // Never allow an HTTPS model download to be downgraded to plain HTTP.
+            .followSslRedirects(false)
+            .build()
+    }
 
     /** The "Hey Jarvis" keyword model: a 17 MB download, of which only ~5 MB of int8 files are kept. */
     fun downloadWakeWord(context: Context, progress: (Int) -> Unit) {
@@ -40,29 +53,37 @@ object ModelDownloader {
         progress: (Int) -> Unit,
         open: (InputStream) -> ArchiveInputStream<*>,
     ) {
+        val parsed = runCatching { URI(url) }.getOrNull()
+            ?: throw IOException("Invalid model download URL")
+        if (!parsed.scheme.equals("https", ignoreCase = true) ||
+            parsed.host.isNullOrBlank() || parsed.userInfo != null || parsed.fragment != null
+        ) throw IOException("Model downloads must use a valid HTTPS URL without embedded credentials")
+
         val tmp = File(context.cacheDir, target.name + ".download")
-        OkHttpClient().newCall(Request.Builder().url(url).build()).execute().use { resp ->
-            if (!resp.isSuccessful) throw IOException("Download failed: HTTP ${resp.code}")
-            val body = resp.body ?: throw IOException("Empty download")
-            val total = body.contentLength()
-            body.byteStream().use { input ->
-                tmp.outputStream().use { out ->
-                    val buf = ByteArray(64 * 1024)
-                    var done = 0L
-                    var last = -1
-                    while (true) {
-                        val n = input.read(buf)
-                        if (n < 0) break
-                        out.write(buf, 0, n)
-                        done += n
-                        // The last 10% of the bar covers unpacking.
-                        val pct = if (total > 0) (done * 90 / total).toInt() else 0
-                        if (pct != last) { last = pct; progress(pct) }
+        try {
+            downloadClient.newCall(Request.Builder().url(url).build()).execute().use { resp ->
+                if (!resp.isSuccessful) throw IOException("Download failed: HTTP ${resp.code}")
+                if (!resp.request.url.isHttps) throw IOException("Refusing a non-HTTPS model download redirect")
+                val body = resp.body ?: throw IOException("Empty download")
+                val total = body.contentLength()
+                if (total > MAX_ARCHIVE_BYTES) throw IOException("Model archive exceeds the download size limit")
+                body.byteStream().use { input ->
+                    tmp.outputStream().use { out ->
+                        val buf = ByteArray(64 * 1024)
+                        var done = 0L
+                        var last = -1
+                        while (true) {
+                            val n = input.read(buf)
+                            if (n < 0) break
+                            done += n
+                            if (done > MAX_ARCHIVE_BYTES) throw IOException("Model archive exceeds the download size limit")
+                            out.write(buf, 0, n)
+                            val pct = if (total > 0) (done * 90 / total).toInt().coerceIn(0, 90) else 0
+                            if (pct != last) { last = pct; progress(pct) }
+                        }
                     }
                 }
             }
-        }
-        try {
             unpack(tmp, target, open)
         } finally {
             tmp.delete()
@@ -72,27 +93,71 @@ object ModelDownloader {
 
     /** Unpacks [file] into [target], dropping the archive's top-level folder. */
     internal fun unpack(file: File, target: File, open: (InputStream) -> ArchiveInputStream<*>) {
-        // Unpack next to the target, then swap in, so a failed unpack never leaves a half-installed model.
-        val staging = File(target.parentFile, target.name + ".new").apply { deleteRecursively(); mkdirs() }
+        val parent = target.absoluteFile.parentFile ?: throw IOException("Invalid model target directory")
+        if (!parent.exists() && !parent.mkdirs()) throw IOException("Could not create model directory")
+        val staging = File(parent, target.name + ".new").apply {
+            if (exists() && !deleteRecursively()) throw IOException("Could not clear model staging directory")
+            if (!mkdirs()) throw IOException("Could not create model staging directory")
+        }
+        val backup = File(parent, target.name + ".old")
         val root = staging.canonicalPath + File.separator
+        var entryCount = 0
+        var expandedBytes = 0L
+
         try {
             open(file.inputStream()).use { archive ->
                 while (true) {
                     val entry = archive.nextEntry ?: break
-                    // Strip the archive's top-level folder.
-                    val relative = entry.name.substringAfter('/', "")
+                    entryCount++
+                    if (entryCount > MAX_ARCHIVE_ENTRIES) throw IOException("Model archive contains too many entries")
+
+                    val name = entry.name
+                    if (name.isBlank() || name.startsWith("/") || '\\\\' in name ||
+                        name.contains('\u0000') || Regex("^[A-Za-z]:").containsMatchIn(name)
+                    ) throw IOException("Unsafe model archive path")
+
+                    // Strip the archive's top-level folder. Reject traversal rather than trying to normalize it.
+                    val relative = name.substringAfter('/', "")
                     if (relative.isEmpty()) continue
-                    val file = File(staging, relative)
-                    if (!file.canonicalPath.startsWith(root)) throw IOException("Bad archive entry ${entry.name}")
-                    if (entry.isDirectory) file.mkdirs()
-                    else {
-                        file.parentFile?.mkdirs()
-                        file.outputStream().use { archive.copyTo(it) }
+                    if (relative.split('/').any { it == ".." || it == "." || it.isEmpty() }) {
+                        throw IOException("Unsafe model archive path")
+                    }
+
+                    val output = File(staging, relative)
+                    val canonical = output.canonicalPath
+                    if (!canonical.startsWith(root)) throw IOException("Model archive entry escapes staging directory")
+                    if (entry.isDirectory) {
+                        if (!output.exists() && !output.mkdirs()) throw IOException("Could not create model directory")
+                        continue
+                    }
+
+                    output.parentFile?.let { if (!it.exists() && !it.mkdirs()) throw IOException("Could not create model directory") }
+                    output.outputStream().use { out ->
+                        val buffer = ByteArray(64 * 1024)
+                        while (true) {
+                            val count = archive.read(buffer)
+                            if (count < 0) break
+                            expandedBytes += count
+                            if (expandedBytes > MAX_EXPANDED_BYTES) {
+                                throw IOException("Expanded model archive exceeds the safety limit")
+                            }
+                            out.write(buffer, 0, count)
+                        }
                     }
                 }
             }
-            target.deleteRecursively()
-            if (!staging.renameTo(target)) throw IOException("Could not install model")
+
+            // Keep the previous working model until the new one is completely extracted.
+            if (backup.exists() && !backup.deleteRecursively()) throw IOException("Could not clear previous model backup")
+            if (target.exists() && !target.renameTo(backup)) throw IOException("Could not preserve the previous model")
+            if (!staging.renameTo(target)) {
+                if (backup.exists()) backup.renameTo(target)
+                throw IOException("Could not install model")
+            }
+            backup.deleteRecursively()
+        } catch (e: Exception) {
+            if (!target.exists() && backup.exists()) backup.renameTo(target)
+            throw e
         } finally {
             staging.deleteRecursively()
         }

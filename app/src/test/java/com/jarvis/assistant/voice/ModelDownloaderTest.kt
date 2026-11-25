@@ -44,6 +44,19 @@ class ModelDownloaderTest {
         assertFalse("staging cleaned up", File(tmp.root, "kokoro.new").exists())
     }
 
+
+    @Test
+    fun rejectsAbsoluteAndWindowsStylePaths() {
+        val absolute = tarBz2("/top/escape.txt" to "x")
+        val target = File(tmp.root, "models").apply { mkdirs(); resolve("keep.txt").writeText("keep") }
+        assertTrue(runCatching { ModelDownloader.unpack(absolute, target, ModelDownloader::openTarBz2) }.isFailure)
+        assertEquals("keep", target.resolve("keep.txt").readText())
+
+        val windows = tarBz2("top\\\\..\\\\escape.txt" to "x")
+        assertTrue(runCatching { ModelDownloader.unpack(windows, target, ModelDownloader::openTarBz2) }.isFailure)
+        assertEquals("keep", target.resolve("keep.txt").readText())
+    }
+
     @Test
     fun rejectsPathTraversal() {
         val archive = tarBz2("top/../../evil.txt" to "x")

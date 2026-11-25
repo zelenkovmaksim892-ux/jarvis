@@ -142,6 +142,25 @@ class GgufDownloaderTest {
         } finally { srv.close() }
     }
 
+
+    @Test fun cachedFileIsRehashedBeforeItIsTrusted() {
+        val srv = Server(body, sha(body)); val dir = tmp()
+        try {
+            val target = File(dir, "m.gguf")
+            val first = GgufDownloader("${srv.base}/model.gguf", target, retryPauseMs = 10).download()
+            assertTrue(first.toString(), first is GgufDownloader.Result.Ok)
+            val bytes = target.readBytes()
+            bytes[bytes.lastIndex] = (bytes.last().toInt() xor 0x01).toByte()
+            target.writeBytes(bytes)
+            target.setLastModified(target.lastModified() + 5_000L)
+
+            val second = GgufDownloader("${srv.base}/model.gguf", target, retryPauseMs = 10).download()
+            assertTrue(second.toString(), second is GgufDownloader.Result.Ok)
+            assertEquals(sha(body), GgufDownloader.sha256Of(target))
+            assertEquals(2, srv.requests.count { it.startsWith("GET") })
+        } finally { srv.close() }
+    }
+
     @Test fun plainHttpToARemoteHostIsRefused() {
         val r = GgufDownloader("http://example.com/model.gguf", File(tmp(), "m.gguf"), retryPauseMs = 10).download()
         assertTrue(r.toString(), r is GgufDownloader.Result.Failed)

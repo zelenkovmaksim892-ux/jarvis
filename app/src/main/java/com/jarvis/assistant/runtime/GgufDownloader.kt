@@ -41,9 +41,23 @@ class GgufDownloader(
     private val marker = File(dest.path + ".ok")
 
     /** True when [dest] was fully downloaded and verified earlier (and nothing has changed it since). */
-    fun isComplete(): Boolean =
-        dest.isFile && marker.isFile && marker.readText().trim() == "${dest.length()}" &&
-            (expectedSize == null || dest.length() == expectedSize) && hasGgufHeader(dest)
+    fun isComplete(): Boolean = try {
+        if (!dest.isFile || !marker.isFile || !hasGgufHeader(dest)) return false
+        val parts = marker.readText().trim().split(':')
+        if (parts.size != 2) return false
+        if (parts.size != 3) return false
+        val recordedSize = parts[0].toLongOrNull() ?: return false
+        val recordedModified = parts[1].toLongOrNull() ?: return false
+        val recordedSha = parts[2].lowercase()
+        if (!SHA256_PATTERN.matches(recordedSha) ||
+            recordedSize != dest.length() || recordedModified != dest.lastModified()
+        ) return false
+        if (expectedSize != null && dest.length() != expectedSize) return false
+        if (expectedSha256 != null && !recordedSha.equals(expectedSha256, ignoreCase = true)) return false
+        true
+    } catch (_: Exception) {
+        false
+    }
 
     fun download(onProgress: (done: Long, total: Long) -> Unit = { _, _ -> }, onPhase: (String) -> Unit = {}): Result {
         cancelled = false
@@ -54,6 +68,9 @@ class GgufDownloader(
         val remote = try { fetchRemote() } catch (e: IOException) { return Result.Failed("Can't reach the download server: ${e.message}", true) }
         val total = expectedSize ?: remote.size ?: return Result.Failed("The server did not say how big the file is.", true)
         val sha = (expectedSha256 ?: remote.sha256)?.lowercase()
+        if (sha == null || !SHA256_PATTERN.matches(sha)) {
+            return Result.Failed("The download source did not provide a valid SHA-256 checksum. Refusing an unverified model.", false)
+        }
 
         val have = if (part.isFile) part.length() else 0L
         if (have > total) part.delete()
@@ -95,7 +112,7 @@ class GgufDownloader(
         }
         if (dest.exists() && !dest.delete()) return Result.Failed("Could not replace the old model file.", false)
         if (!part.renameTo(dest)) return Result.Failed("Could not save the model file.", false)
-        marker.writeText("${dest.length()}")
+        marker.writeText("${dest.length()}:${dest.lastModified()}:$sha")
         return Result.Ok(dest, alreadyPresent = false)
     }
 
@@ -103,11 +120,18 @@ class GgufDownloader(
 
     private fun open(target: String, method: String, rangeFrom: Long?): HttpURLConnection {
         var current = target
+        val initialUri = runCatching { URI(target) }.getOrElse { throw IOException("Invalid download URL") }
+        val startedHttps = initialUri.scheme.equals("https", ignoreCase = true)
         repeat(MAX_REDIRECTS) {
-            val u = URL(current)
-            val local = u.host == "localhost" || u.host == "127.0.0.1"
-            if (u.protocol != "https" && !local) throw IOException("Refusing a non-HTTPS download address")
-            val c = u.openConnection() as HttpURLConnection
+            val uri = runCatching { URI(current) }.getOrElse { throw IOException("Invalid redirect URL") }
+            val u = runCatching { URL(current) }.getOrElse { throw IOException("Invalid redirect URL") }
+            val local = u.host == "localhost" || u.host == "127.0.0.1" || u.host == "::1"
+            val secureScheme = uri.scheme.equals("https", ignoreCase = true)
+            val localHttp = uri.scheme.equals("http", ignoreCase = true) && local && !startedHttps
+            if (uri.userInfo != null || uri.fragment != null || (!secureScheme && !localHttp)) {
+                throw IOException("Refusing an unsafe download redirect or non-HTTPS address")
+            }
+            val c = u.openConnection() as? HttpURLConnection ?: throw IOException("Unsupported download protocol")
             c.instanceFollowRedirects = false
             c.connectTimeout = connectTimeoutMs
             c.readTimeout = readTimeoutMs
@@ -117,8 +141,15 @@ class GgufDownloader(
             val code = c.responseCode
             if (code in intArrayOf(301, 302, 303, 307, 308)) {
                 val next = c.getHeaderField("Location") ?: throw IOException("Redirect without a location")
+                val resolved = URI(current).resolve(next)
+                if (resolved.userInfo != null || resolved.fragment != null ||
+                    (startedHttps && !resolved.scheme.equals("https", ignoreCase = true))
+                ) {
+                    c.disconnect()
+                    throw IOException("Refusing a downgrade or credential-bearing redirect")
+                }
                 c.disconnect()
-                current = URI(current).resolve(next).toString()
+                current = resolved.toString()
                 return@repeat
             }
             return c
@@ -130,10 +161,16 @@ class GgufDownloader(
     private fun fetchRemote(): Remote {
         var size: Long? = null
         var sha: String? = null
-        val first = URL(url).openConnection() as HttpURLConnection
+        val uri = runCatching { URI(url) }.getOrElse { throw IOException("Invalid download URL") }
+        val u = runCatching { URL(url) }.getOrElse { throw IOException("Invalid download URL") }
+        val local = u.host == "localhost" || u.host == "127.0.0.1" || u.host == "::1"
+        val secureScheme = uri.scheme.equals("https", ignoreCase = true)
+        val localHttp = uri.scheme.equals("http", ignoreCase = true) && local
+        if (uri.userInfo != null || uri.fragment != null || (!secureScheme && !localHttp)) {
+            throw IOException("Refusing a non-HTTPS or credential-bearing download address")
+        }
+        val first = u.openConnection() as? HttpURLConnection ?: throw IOException("Unsupported download protocol")
         try {
-            val u = URL(url)
-            if (u.protocol != "https" && u.host != "localhost" && u.host != "127.0.0.1") throw IOException("Refusing a non-HTTPS download address")
             first.instanceFollowRedirects = false
             first.connectTimeout = connectTimeoutMs
             first.readTimeout = readTimeoutMs
@@ -155,7 +192,8 @@ class GgufDownloader(
                 c.disconnect()
             }
         }
-        return Remote(size, sha)
+        val verifiedSha = sha?.lowercase()?.takeIf { SHA256_PATTERN.matches(it) }
+        return Remote(size, verifiedSha)
     }
 
     /** Returns false if cancelled. Throws IOException when the connection drops. */
@@ -205,6 +243,7 @@ class GgufDownloader(
 
     companion object {
         private const val MAX_REDIRECTS = 6
+        private val SHA256_PATTERN = Regex("^[0-9a-fA-F]{64}$")
         private const val SPACE_MARGIN = 64L * 1024 * 1024
 
         fun hasGgufHeader(f: File): Boolean = try {
