@@ -77,6 +77,9 @@ jobs:
       - name: Run Python tests
         run: PYTHONPATH=trading-engine python -m unittest discover -s trading-engine/tests -v
 
+      - name: Validate agent catalog safety
+        run: python3 agents/validate_catalog.py
+
       - name: Unit tests and lint
         run: ./gradlew testDebugUnitTest lintDebug
 
