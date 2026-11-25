@@ -38,7 +38,7 @@ internal fun requiresSecondConfirmation(action: String, args: JSONObject, detail
     if (action == "type_text" && args.optBoolean("press_enter")) return true
     if (action != "tap") return false
     return Regex(
-        "(?iu)\\b(send|call|dial|pay|payment|transfer|delete|purchase|buy|publish|submit|confirm)\\b|отправ|позвон|оплат|перевод|удал|покуп|публикац"
+        "(?iu)\\b(send|call|dial|pay|payment|transfer|delete|purchase|buy|publish|submit|confirm)\\b|отправ|позвон|оплат|перев|удал|покуп|публикац|подтверж|спис|вывест"
     ).containsMatchIn(details)
 }
 
