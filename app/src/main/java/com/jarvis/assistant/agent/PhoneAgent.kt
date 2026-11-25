@@ -226,7 +226,7 @@ class PhoneAgent(
                                 "tap" -> {
                     val label = a11y.labelOf(a.getInt("element_id"))
                     a11y.tap(a.getInt("element_id")).also { result ->
-                        if (!result.contains("failed", true) && Regex("(?iu)\\b(send|call|dial|pay|payment|transfer|delete|purchase|buy|publish|submit|confirm)\\b|отправ|позвон|оплат|перевод|удал|покуп|публикац").containsMatchIn(label)) {
+                        if (!result.contains("failed", true) && Regex("(?iu)\\b(send|call|dial|pay|payment|transfer|delete|purchase|buy|publish|submit|confirm)\\b|отправ|позвон|оплат|перев|удал|покуп|публикац|подтверж|спис|вывест").containsMatchIn(label)) {
                             host.onIrreversible()
                         }
                     }
