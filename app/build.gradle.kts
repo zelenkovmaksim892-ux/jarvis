@@ -28,24 +28,11 @@ android {
         }
     }
 
-    // Release signing comes from environment variables (set by the release workflow from repository
-    // secrets). Without them, release builds are unsigned and only debug builds can be installed.
-    val keystore = System.getenv("JARVIS_KEYSTORE")
-    signingConfigs {
-        if (keystore != null) {
-            create("release") {
-                storeFile = file(keystore)
-                storePassword = System.getenv("JARVIS_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("JARVIS_KEY_ALIAS")
-                keyPassword = System.getenv("JARVIS_KEY_PASSWORD")
-            }
-        }
-    }
-
+    // Release APKs are built unsigned. The isolated release workflow signs them with apksigner
+    // after Gradle has finished, so the signing key is never exposed to build scripts or plugins.
     buildTypes {
         release {
             isMinifyEnabled = false
-            if (keystore != null) signingConfig = signingConfigs.getByName("release")
         }
     }
     // Lists the app's languages so Android 13+ offers Jarvis under Settings > Apps > Language.
