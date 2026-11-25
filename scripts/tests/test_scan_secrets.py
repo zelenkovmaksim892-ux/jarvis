@@ -14,6 +14,11 @@ class SecretScannerTests(unittest.TestCase):
         marker = "-" * 5 + "BEGIN " + "PRIVATE KEY" + "-" * 5
         self.assertTrue(scan_text(marker))
 
+
+    def test_detects_pgp_private_key(self):
+        marker = "-" * 5 + "BEGIN PGP PRIVATE KEY " + "BLOCK" + "-" * 5
+        self.assertTrue(scan_text(marker))
+
     def test_ignores_normal_docs_and_placeholders(self):
         text = "Set API_KEY to YOUR_API_KEY_HERE. Use HTTPS and never paste secrets."
         self.assertEqual([], scan_text(text))
