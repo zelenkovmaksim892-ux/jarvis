@@ -16,7 +16,7 @@ Jarvis is designed to fail closed when a trust check fails. This document descri
 - Every phone-control action and every screen-data transfer requires a visible approval. Coordinate taps, long presses, and submit-by-enter actions require an additional confirmation.
 - Provider error bodies are not written to Logcat.
 - GitHub Actions are pinned to commit SHAs. CI uses read-only repository permissions, checks the Gradle wrapper, builds native runtimes, and runs tests. CodeQL, dependency review, and Dependabot are configured.
-- Release publication is manual, requires an explicit confirmation input, accepts only tags reachable from master, requires a signing key, and separates APK building from the job that receives release-write permission.
+- Release publication is manual, requires an explicit confirmation input, accepts only tags reachable from master, and signs APKs with Android's `apksigner` after Gradle has finished. The signing key is not exposed to Gradle scripts or plugins. APK building is separated from the job that receives release-write permission.
 
 ## Known limitations
 

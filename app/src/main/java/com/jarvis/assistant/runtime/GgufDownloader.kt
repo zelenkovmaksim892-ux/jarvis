@@ -45,7 +45,6 @@ class GgufDownloader(
     fun isComplete(): Boolean = try {
         if (!dest.isFile || !marker.isFile || !hasGgufHeader(dest)) return false
         val parts = marker.readText().trim().split(':')
-        if (parts.size != 2) return false
         if (parts.size != 3) return false
         val recordedSize = parts[0].toLongOrNull() ?: return false
         val recordedModified = parts[1].toLongOrNull() ?: return false
@@ -67,7 +66,11 @@ class GgufDownloader(
 
         onPhase("Checking the download")
         val remote = try { fetchRemote() } catch (e: IOException) { return Result.Failed("Can't reach the download server: ${e.message}", true) }
+        if (expectedSize != null && remote.size != null && expectedSize != remote.size) {
+            return Result.Failed("The model size does not match the pinned release metadata.", false)
+        }
         val total = expectedSize ?: remote.size ?: return Result.Failed("The server did not say how big the file is.", true)
+        if (total > MAX_MODEL_BYTES) return Result.Failed("The model exceeds the maximum supported download size.", false)
         val sha = (expectedSha256 ?: remote.sha256)?.lowercase()
         if (sha == null || !SHA256_PATTERN.matches(sha)) {
             return Result.Failed("The download source did not provide a valid SHA-256 checksum. Refusing an unverified model.", false)
@@ -219,6 +222,10 @@ class GgufDownloader(
                         if (cancelled) return false
                         val n = input.read(buf)
                         if (n < 0) break
+                        if (done + n > total) {
+                            target.delete()
+                            throw IOException("The server sent more data than the verified model size")
+                        }
                         out.write(buf, 0, n)
                         done += n
                         if (done - lastReport >= 256 * 1024 || done == total) { lastReport = done; onProgress(done, total) }
@@ -244,6 +251,7 @@ class GgufDownloader(
 
     companion object {
         private const val MAX_REDIRECTS = 6
+        private const val MAX_MODEL_BYTES = 16L * 1024 * 1024 * 1024
         private val SHA256_PATTERN = Regex("^[0-9a-fA-F]{64}$")
         private const val SPACE_MARGIN = 64L * 1024 * 1024
 

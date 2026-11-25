@@ -68,7 +68,7 @@ else
     if [ -f "$PROPS" ] && grep -Eq '^[[:space:]]*#?[[:space:]]*allow-external-apps' "$PROPS"; then
       sed -i -E 's/^[[:space:]]*#?[[:space:]]*allow-external-apps.*/allow-external-apps = true/' "$PROPS"
     else
-      printf '\\nallow-external-apps = true\\n' >>"$PROPS"
+      printf '\nallow-external-apps = true\n' >>"$PROPS"
     fi
     if command -v termux-reload-settings >/dev/null 2>&1; then termux-reload-settings || true; fi
     echo "  enabled"

@@ -8,7 +8,11 @@ ARCH = {"armeabi-v7a": (1, 40), "arm64-v8a": (2, 183), "x86_64": (2, 62)}
 variant = sys.argv[1]
 directory = Path("app/build/outputs/apk") / variant
 for name in [*ARCH, "universal"]:
-    apk = directory / f"app-{name}-{variant}.apk"
+    candidates = [
+        directory / f"app-{name}-{variant}.apk",
+        directory / f"app-{name}-{variant}-unsigned.apk",
+    ]
+    apk = next((candidate for candidate in candidates if candidate.is_file()), candidates[0])
     expected = set(ARCH) if name == "universal" else {name}
     with ZipFile(apk) as package:
         libraries = [p for p in package.namelist() if p.startswith("lib/") and p.endswith(".so")]

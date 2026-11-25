@@ -32,6 +32,13 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Verify Gradle wrapper JAR checksum
         run: printf '%s  %s\n' '2db75c40782f5e8ba1fc278a5574bab070adccb2d21ca5a6e5ed840888448046' 'gradle/wrapper/gradle-wrapper.jar' | sha256sum --check --strict
+      - name: Set up Android SDK
+        if: matrix.language == 'java-kotlin'
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+
+      - name: Install Android platform for Kotlin analysis
+        if: matrix.language == 'java-kotlin'
+        run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@74c1aea9df7c0f02e9b7bfe4a8935abf2e5e3aa6 # v3

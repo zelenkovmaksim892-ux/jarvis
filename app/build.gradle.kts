@@ -1,4 +1,5 @@
 import java.net.URI
+import java.net.HttpURLConnection
 import java.security.MessageDigest
 
 plugins {
@@ -109,12 +110,12 @@ val fetchSherpaOnnx by tasks.registering {
         logger.lifecycle("Downloading $url")
         val part = File(sherpaAar.path + ".part")
         sherpaAar.parentFile.mkdirs()
-        val connection = URI(url).toURL().openConnection() as java.net.HttpURLConnection
+        val connection = URI(url).toURL().openConnection() as HttpURLConnection
         connection.instanceFollowRedirects = true
         connection.connectTimeout = 15_000
         connection.readTimeout = 30_000
         try {
-            if (connection.responseCode != java.net.HttpURLConnection.HTTP_OK) {
+            if (connection.responseCode != HttpURLConnection.HTTP_OK) {
                 throw GradleException("sherpa-onnx download failed with HTTP ${connection.responseCode}")
             }
             if (!connection.url.protocol.equals("https", ignoreCase = true) ||

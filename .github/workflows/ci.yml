@@ -1,3 +1,4 @@
+
 name: CI
 
 on:
@@ -12,7 +13,6 @@ permissions:
 env:
   LLAMA_CPP_REF: bee23322f1baa3d2dd16b8339bed6aff4a8eb663
 
-# A newer push to the same branch replaces a build that is still running.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -20,7 +20,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Verify Gradle wrapper JAR checksum
@@ -32,6 +32,14 @@ jobs:
           java-version: 21
 
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+
+      - name: Install pinned Android NDK, CMake and build-tools
+        run: |
+          sdkmanager --install "ndk;27.2.12479018" "cmake;3.22.1" "build-tools;35.0.0"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
 
       - name: Cache sherpa-onnx
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -58,8 +66,6 @@ jobs:
           path: app/src/main/jniLibs/*/libllama_server.so
           key: ${{ steps.llama-cache.outputs.cache-primary-key }}
 
-      # The APK is built and uploaded first, so a failing test or lint rule never hides an installable build.
-      # The tests and lint still run below and still turn the workflow red when they fail.
       - name: Build debug APK
         run: |
           ./gradlew assembleDebug
@@ -70,7 +76,7 @@ jobs:
           name: jarvis-debug-apk
           path: app/build/outputs/apk/debug/*.apk
 
-      - name: Python trading engine tests
+      - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
@@ -93,11 +99,4 @@ jobs:
             app/build/reports/tests/
             app/build/reports/lint-results-debug.html
             app/build/test-results/
-          if-no-files-found: ignore
-
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: always()
-        with:
-          name: screenshots
-          path: app/build/screenshots/
           if-no-files-found: ignore

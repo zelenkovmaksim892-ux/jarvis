@@ -170,7 +170,7 @@ object ModelDownloader {
                     ) throw IOException("Unsafe model archive path")
 
                     // Strip the archive's top-level folder. Reject traversal rather than trying to normalize it.
-                    val relative = name.substringAfter('/', "")
+                    val relative = name.substringAfter('/', "").trimEnd('/')
                     if (relative.isEmpty()) continue
                     if (relative.split('/').any { it == ".." || it == "." || it.isEmpty() }) {
                         throw IOException("Unsafe model archive path")

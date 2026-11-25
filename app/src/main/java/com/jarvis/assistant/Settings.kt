@@ -1,10 +1,12 @@
 package com.jarvis.assistant
 
 import android.content.Context
+import android.util.Log
 import com.jarvis.assistant.ai.AiMode
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
+import java.security.SecureRandom
 
 /** The kind of wire API a provider speaks. */
 enum class ApiKind { ANTHROPIC, OPENAI_COMPATIBLE }
@@ -135,13 +137,7 @@ class Settings(context: Context) {
 
     fun profiles(): List<ModelProfile> {
         migrateLegacyProvider()
-        val encrypted = prefs.getString("profiles_secure", null)
-            ?: throw IllegalStateException("Secure model storage was not initialized")
-        val arr = try {
-            JSONArray(secretStore.decrypt(encrypted))
-        } catch (e: Exception) {
-            throw IllegalStateException("Saved AI credentials could not be decrypted; the stored data was preserved.", e)
-        }
+        val arr = JSONArray(readProfilesPayload())
         return (0 until arr.length()).map { ModelProfile.fromJson(arr.getJSONObject(it)) }
     }
 
@@ -182,10 +178,17 @@ class Settings(context: Context) {
     /** Encrypt credentials from older plaintext preference formats before using them. */
     private fun migrateLegacyProvider() {
         if (prefs.contains("profiles_secure")) {
-            // Clean up any duplicate plaintext left by older migration paths.
-            val editor = prefs.edit().remove("profiles")
-            PROVIDERS.forEach { editor.remove("p.${it.id}.key") }
-            editor.apply()
+            val hasLegacyCopies = prefs.contains("profiles") ||
+                PROVIDERS.any { prefs.contains("p.${it.id}.key") }
+            if (!hasLegacyCopies) return
+            // Remove plaintext duplicates only after confirming the encrypted copy is readable and valid JSON.
+            val encrypted = prefs.getString("profiles_secure", null)
+            val readable = runCatching { JSONArray(secretStore.decrypt(encrypted.orEmpty())) }.isSuccess
+            if (readable) {
+                val editor = prefs.edit().remove("profiles")
+                PROVIDERS.forEach { editor.remove("p.${it.id}.key") }
+                editor.apply()
+            }
             return
         }
 
@@ -237,9 +240,42 @@ class Settings(context: Context) {
         editor.apply()
     }
 
+    private fun readProfilesPayload(): String {
+        val encrypted = prefs.getString("profiles_secure", null)
+            ?: throw IllegalStateException("Secure model storage was not initialized")
+        try {
+            return secretStore.decrypt(encrypted)
+        } catch (original: Exception) {
+            // If a readable legacy copy exists, recover it rather than discarding the user's saved providers.
+            val hasLegacy = prefs.contains("profiles") ||
+                PROVIDERS.any { prefs.contains("p.${it.id}.key") }
+            if (!hasLegacy) throw original
+            prefs.edit().remove("profiles_secure").apply()
+            migrateLegacyProvider()
+            val recovered = prefs.getString("profiles_secure", null)
+                ?: throw IllegalStateException("Legacy provider data could not be recovered", original)
+            return secretStore.decrypt(recovered)
+        }
+    }
+
     private fun readSecret(secureKey: String, legacyKey: String): String {
         val encrypted = prefs.getString(secureKey, null)
-        if (encrypted != null) return secretStore.decrypt(encrypted)
+        if (encrypted != null) {
+            try {
+                val value = secretStore.decrypt(encrypted)
+                if (prefs.contains(legacyKey)) prefs.edit().remove(legacyKey).apply()
+                return value
+            } catch (original: Exception) {
+                val legacy = prefs.getString(legacyKey, null)
+                if (!legacy.isNullOrEmpty()) {
+                    writeSecret(secureKey, legacyKey, legacy)
+                    return legacy
+                }
+                if (legacy != null) prefs.edit().remove(legacyKey).apply()
+                Log.w("JarvisSettings", "A saved credential could not be decrypted; it must be entered again.")
+                return ""
+            }
+        }
         val legacy = prefs.getString(legacyKey, "").orEmpty()
         prefs.edit()
             .putString(secureKey, secretStore.encrypt(legacy))
@@ -369,7 +405,12 @@ class Settings(context: Context) {
 
     /** Random key the app uses to talk to its own model server; no other app knows it. */
     var runtimeApiKey: String
-        get() = readSecret("runtime_key_secure", "runtime_key")
+        get() = readSecret("runtime_key_secure", "runtime_key").ifBlank {
+            val generated = ByteArray(32).also { SecureRandom().nextBytes(it) }
+                .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+            writeSecret("runtime_key_secure", "runtime_key", generated)
+            generated
+        }
         set(v) = writeSecret("runtime_key_secure", "runtime_key", v)
 
     /** Minutes without a request before the model is unloaded to free about 1 GB of memory. 0 = keep it loaded. */
