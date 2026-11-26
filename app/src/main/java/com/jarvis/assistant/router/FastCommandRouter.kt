@@ -9,8 +9,8 @@ import com.jarvis.assistant.ai.AiMode
 object FastCommandRouter {
     private const val MAX_WORDS = 12
 
-    private val MODE = Regex("""^(?:go |switch to |switch |use |set |turn on )?(?:mode )?(offline|online|auto|automatic)(?: mode)?(?: on| karo| kar do| kar de| chalu karo)?$""")
-    private val LANG = Regex("""^(?:please )?(?:(?:speak|listen|talk|understand|reply|bolo|suno|samjho)(?: to me)?(?: in| me| mein)? )?(hindi|hinglish|english|russian)(?: mode)?(?: me| mein| on| karo| kar do| suno| samjho| bolo)*$""")
+    private val MODE = Regex("""^(?:go |switch to |switch |use |set |turn on |enable )?(?:mode )?(offline|online|auto|automatic)(?: mode)?(?: on| karo| kar do| kar de| chalu karo)?$""")
+    private val LANG = Regex("""^(?:please )?(?:(?:speak|listen|talk|understand|reply|switch|set|bolo|suno|samjho)(?: to me)?(?: in| to| me| mein)? )?(hindi|hinglish|english|russian)(?: mode)?(?: me| mein| on| karo| kar do| suno| samjho| bolo)*$""")
 
     private val BACK = Regex("""^(?:go |press |navigate |take me )?back(?: button| karo| kar do| jao| chalo| ja)?$|^(?:peeche|piche|wapas|vapas)(?: jao| ja| chalo| karo| kar do)?$""")
     private val HOME = Regex("""^(?:go |press |take me |navigate |show )?(?:to )?(?:the )?home(?: screen| button| page)?(?: par| pe)?(?: jao| ja| chalo| karo| kar do| dikhao)?$""")
