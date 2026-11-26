@@ -71,6 +71,18 @@ internal object RussianMessages {
         Regex("""^Battery is at (\d+) percent( and charging)?\.$""").matchEntire(message)?.let {
             return "Заряд батареи ${it.groupValues[1]} процентов${if (it.groupValues[2].isNotEmpty()) ", телефон заряжается" else ""}."
         }
+        Regex("""^I've asked your clock app to set an alarm for (.+)\.$""").matchEntire(message)?.let {
+            return "Попросил приложение часов установить будильник на ${it.groupValues[1]}."
+        }
+        Regex("""^I've asked your clock app to start a (.+) timer\.$""").matchEntire(message)?.let {
+            return "Попросил приложение часов запустить таймер на ${it.groupValues[1]}."
+        }
+        Regex("""^It's (.+)\.$""").matchEntire(message)?.let {
+            return "Сейчас ${it.groupValues[1]}."
+        }
+        Regex("""^Today is (.+)\.$""").matchEntire(message)?.let {
+            return "Сегодня ${it.groupValues[1]}."
+        }
         Regex("""^Volume is (\d+) percent\.$""").matchEntire(message)?.let {
             return "Громкость установлена на ${it.groupValues[1]} процентов."
         }
