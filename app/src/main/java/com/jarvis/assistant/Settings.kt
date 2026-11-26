@@ -358,7 +358,7 @@ class Settings(context: Context) {
         get() = AiMode.parse(prefs.getString("ai_mode", null))
         set(v) = prefs.edit().putString("ai_mode", v.name).apply()
 
-    /** "en" = offline English recognizer; "hi" and "ru" use Android speech recognition (provider may require internet). */
+    /** "en" uses the bundled offline recognizer; "hi" and "ru" use Android speech recognition. */
     var speechLanguage: String
         get() = prefs.getString("speech_lang", "en") ?: "en"
         set(v) = prefs.edit().putString("speech_lang", v.takeIf { it in setOf("en", "hi", "ru") } ?: "en").apply()
