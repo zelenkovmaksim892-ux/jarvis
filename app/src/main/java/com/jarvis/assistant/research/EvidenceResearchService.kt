@@ -225,11 +225,31 @@ class EvidenceResearchService(
     private fun isNonPublicAddress(address: InetAddress): Boolean {
         if (address.isAnyLocalAddress || address.isLoopbackAddress || address.isLinkLocalAddress ||
             address.isSiteLocalAddress || address.isMulticastAddress) return true
+        val bytes = address.address.map { it.toInt() and 0xff }
         if (address is Inet6Address) {
-            val first = address.address.first().toInt() and 0xff
-            if ((first and 0xfe) == 0xfc) return true
+            if (bytes.take(10).all { it == 0 } && bytes[10] == 0xff && bytes[11] == 0xff)
+                return isNonPublicAddress(InetAddress.getByAddress(bytes.drop(12).map { it.toByte() }.toByteArray()))
+            val first = bytes[0]
+            if ((first and 0xe0) != 0x20) return true
+            if (bytes[0] == 0x20 && bytes[1] == 0x01 && bytes[2] == 0x0d && bytes[3] == 0xb8) return true
+            if (bytes[0] == 0x20 && bytes[1] == 0x01 && bytes[2] == 0x00) return true
+            return false
         }
-        return false
+        if (bytes.size != 4) return true
+        val x = bytes[0]; val y = bytes[1]; val z = bytes[2]
+        return when {
+            x == 0 || x == 10 || x == 127 || x >= 224 -> true
+            x == 100 && y in 64..127 -> true
+            x == 169 && y == 254 -> true
+            x == 172 && y in 16..31 -> true
+            x == 192 && y == 168 -> true
+            x == 192 && y == 0 && z in setOf(0, 2) -> true
+            x == 192 && y == 88 && z == 99 -> true
+            x == 198 && y in 18..19 -> true
+            x == 198 && y == 51 && z == 100 -> true
+            x == 203 && y == 0 && z == 113 -> true
+            else -> false
+        }
     }
 
     private fun readBounded(input: java.io.InputStream, limit: Int): ByteArray {

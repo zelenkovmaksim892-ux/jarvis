@@ -1,56 +1,56 @@
 package com.jarvis.assistant.ai
 
+import java.net.InetAddress
 import java.net.URI
 
-/** Where an AI endpoint lives: on this phone (loopback), on the local network, or in the cloud. */
 object Endpoints {
     private fun parse(url: String): URI? {
         val t = url.trim()
         if (t.isEmpty()) return null
         return runCatching { URI(if ("://" in t) t else "http://$t") }.getOrNull()
     }
-
     fun host(url: String): String? = parse(url)?.host?.lowercase()
-
-    /** True for a server running on this phone, e.g. llama-server in Termux. */
+    private fun ipAddress(host: String): InetAddress? {
+        val value = host.removePrefix("[").removeSuffix("]")
+        if (value.contains(':')) {
+            if (!value.matches(Regex("[0-9a-fA-F:.]+"))) return null
+            return runCatching { InetAddress.getByName(value) }.getOrNull()
+        }
+        if (!value.matches(Regex("[0-9]{1,3}(\\.[0-9]{1,3}){3}"))) return null
+        val octets = value.split('.').map { it.toIntOrNull() ?: return null }
+        if (octets.any { it !in 0..255 }) return null
+        return runCatching { InetAddress.getByAddress(octets.map { it.toByte() }.toByteArray()) }.getOrNull()
+    }
     fun isLoopback(url: String): Boolean {
         val h = host(url) ?: return false
-        return h == "localhost" || h == "::1" || h == "[::1]" || h.startsWith("127.")
+        if (h == "localhost") return true
+        return ipAddress(h)?.isLoopbackAddress == true
     }
-
-    /**
-     * All remote endpoints must use HTTPS, even when they do not require an API key.
-     * Cleartext HTTP is allowed only for loopback services on this device.
-     * URLs containing embedded user-info are rejected to avoid credential leakage.
-     */
     fun isTransportSafe(url: String): Boolean {
         val uri = parse(url) ?: return false
         if (uri.userInfo != null || uri.host.isNullOrBlank()) return false
         val scheme = uri.scheme ?: return false
-        return scheme.equals("https", ignoreCase = true) ||
-            (scheme.equals("http", ignoreCase = true) && isLoopback(url))
+        return scheme.equals("https", true) || (scheme.equals("http", true) && isLoopback(url))
     }
-
-    /** Backwards-compatible name; transport safety is enforced regardless of whether a key is present. */
     @Suppress("UNUSED_PARAMETER")
-    fun isCredentialTransportSafe(url: String, hasCredentials: Boolean): Boolean =
-        isTransportSafe(url)
-
-    /** True when the endpoint works without the internet: this phone or the local network. */
+    fun isCredentialTransportSafe(url: String, hasCredentials: Boolean): Boolean = isTransportSafe(url)
     fun isLocal(url: String): Boolean {
         if (isLoopback(url)) return true
         val h = host(url) ?: return false
         if (h.endsWith(".local")) return true
-        val p = h.split('.').mapNotNull { it.toIntOrNull() }
-        if (p.size != 4) return false
-        return p[0] == 10 || (p[0] == 192 && p[1] == 168) || (p[0] == 172 && p[1] in 16..31)
+        val address = ipAddress(h) ?: return false
+        val bytes = address.address.map { it.toInt() and 0xff }
+        if (bytes.size == 4) {
+            val x = bytes[0]; val y = bytes[1]
+            return x == 10 || (x == 192 && y == 168) || (x == 172 && y in 16..31)
+        }
+        if (bytes.size == 16) return (bytes[0] and 0xfe) == 0xfc || address.isLinkLocalAddress
+        return false
     }
-
-    /** `http://127.0.0.1:8080/v1` -> `http://127.0.0.1:8080`. */
     fun origin(url: String): String? {
         val u = parse(url) ?: return null
         val h = u.host ?: return null
-        val port = if (u.port > 0) ":${u.port}" else ""
-        return "${u.scheme ?: "http"}://$h$port"
+        val port = if (u.port > 0) ":" + u.port else ""
+        return (u.scheme ?: "http") + "://" + h + port
     }
 }
