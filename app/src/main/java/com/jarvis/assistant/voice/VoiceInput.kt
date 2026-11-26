@@ -573,7 +573,7 @@ class VoiceInput(private val context: Context, private val onWake: () -> Unit) {
         private const val MAX_BLOCKED_RESTARTS = 2   // after that, assume the phone really outputs digital silence
 
         /** Words that mean "be quiet" when said over Jarvis. */
-        val STOP_WORDS = setOf("stop", "wait", "cancel", "quiet", "enough", "pause", "hold", "shush")
+        val STOP_WORDS = setOf("stop", "wait", "cancel", "quiet", "enough", "pause", "hold", "shush", "стоп", "хватит", "отмена", "прекрати")
 
         /** Lower-case words, letters and apostrophes only. */
         fun words(text: String): List<String> =
@@ -617,7 +617,8 @@ class VoiceInput(private val context: Context, private val onWake: () -> Unit) {
         fun isStopCommand(text: String): Boolean {
             val t = words(text).joinToString(" ")
             return t in setOf("stop", "stop it", "stop that", "stop talking", "cancel", "cancel that", "never mind", "nevermind",
-                "shut up", "be quiet", "quiet", "enough", "that's enough", "thats enough", "okay stop", "ok stop", "wait", "hold on", "no stop")
+                "shut up", "be quiet", "quiet", "enough", "that's enough", "thats enough", "okay stop", "ok stop", "wait", "hold on", "no stop",
+                "стоп", "остановись", "останови", "хватит", "замолчи", "отмена", "отмени", "прекрати", "перестань")
         }
         private const val MIN_SPEECH_LEVEL = 0.02f
 
