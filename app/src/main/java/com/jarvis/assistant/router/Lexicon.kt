@@ -50,7 +50,7 @@ object Lexicon {
         "максимум" to "maximum", "минимум" to "minimum", "музыку" to "music", "музыка" to "music",
         "песню" to "song", "песня" to "song", "пауза" to "pause", "останови" to "stop",
         "остановить" to "stop", "продолжи" to "resume", "следующий" to "next", "следующая" to "next",
-        "предыдущий" to "previous", "предыдущая" to "previous", "трек" to "track", "таймер" to "timer",
+        "предыдущий" to "previous", "предыдущая" to "previous", "трек" to "song", "таймер" to "timer",
         "будильник" to "alarm", "поставь" to "set", "установи" to "set", "заведи" to "set",
         "на" to "for", "минут" to "minutes", "минута" to "minute", "минуту" to "minute",
         "секунд" to "seconds", "секунда" to "second", "секунды" to "seconds", "час" to "hour",
