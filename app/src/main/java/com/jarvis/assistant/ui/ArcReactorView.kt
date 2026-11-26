@@ -11,8 +11,8 @@ import kotlin.math.min
 import kotlin.math.sin
 
 /**
- * Status orb: a plain disc that breathes when ready, sends out rings while listening and has a
- * thin spinning arc while working.
+ * Status orb: it breathes when ready, sends out rings while listening, spins while working,
+ * and emits pulsing energy waves while Jarvis speaks.
  */
 class ArcReactorView @JvmOverloads constructor(
     context: Context,
