@@ -747,7 +747,7 @@ class JarvisService : Service() {
         // This prevents accidental wake-word detections from cancelling a slow Qwen request.
         lastTask = task
         island { it.working(board.foreground()?.text ?: task) }
-        update("Working on: ${board.foreground()?.text ?: task}")
+        update(if (settings.speechLanguage == "ru") "Выполняю: ${board.foreground()?.text ?: task}" else "Working on: ${board.foreground()?.text ?: task}")
 
         // Instant paths first: what the user is teaching Jarvis, then simple phone commands. No language model involved,
         // so they work offline and finish in milliseconds.
@@ -861,7 +861,7 @@ class JarvisService : Service() {
         cancelAck()
         val r = Runnable {
             pendingAck = null
-            if (!destroyed && !isStale(id) && state == State.WORKING) say(acks.next())
+            if (!destroyed && !isStale(id) && state == State.WORKING) say(acks.next(settings.speechLanguage))
         }
         pendingAck = r
         main.postDelayed(r, ACK_DELAY_MS)
@@ -904,7 +904,7 @@ class JarvisService : Service() {
         streamerFor = null
         val streamed = streamer != null && streamer.spoken > 0
         // A streamed answer was already spoken piece by piece, so the greeting and notes are kept for the next reply.
-        val prefix = if (streamed) null else greeting.takePrefix()
+        val prefix = if (streamed) null else greeting.takePrefix(settings.speechLanguage)
         val note = if (streamed) null else pendingNote.also { pendingNote = null }
         val result = AgentResult(result0.success, listOfNotNull(prefix, note, result0.summary).joinToString(" "))
         lastResult = result.summary
@@ -961,7 +961,7 @@ class JarvisService : Service() {
             voice.wakeEnabled = settings.wakeWordEnabled
             when {
                 error != null -> update(error)
-                !settings.wakeWordEnabled -> { voice.stop(); update("Ready. Tap the mic to talk.") }
+                !settings.wakeWordEnabled -> { voice.stop(); update(if (settings.speechLanguage == "ru") "Готов. Нажми на микрофон, чтобы поговорить." else "Ready. Tap the mic to talk.") }
                 !voice.hasWakeWord -> update("Ready. Download the wake word in Settings to use \"${settings.wakePromptPhrase}\".")
                 else -> { voice.start(); update("Say \"${settings.wakePromptPhrase}\"") }
             }
@@ -976,7 +976,7 @@ class JarvisService : Service() {
         val pm = getSystemService(PowerManager::class.java)
         pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP, "jarvis:wake")
             .acquire(3000)
-        speakAndWait("Please unlock your phone and I'll get started.")
+        speakAndWait(if (settings.speechLanguage == "ru") "Разблокируй телефон, и я продолжу." else "Please unlock your phone and I'll get started.")
         val deadline = System.currentTimeMillis() + 30_000
         while (keyguard.isKeyguardLocked && System.currentTimeMillis() < deadline && !isStale(id)) Thread.sleep(300)
     }
