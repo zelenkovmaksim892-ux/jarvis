@@ -225,11 +225,39 @@ class EvidenceResearchService(
     private fun isNonPublicAddress(address: InetAddress): Boolean {
         if (address.isAnyLocalAddress || address.isLoopbackAddress || address.isLinkLocalAddress ||
             address.isSiteLocalAddress || address.isMulticastAddress) return true
+
+        val bytes = address.address.map { it.toInt() and 0xff }
         if (address is Inet6Address) {
-            val first = address.address.first().toInt() and 0xff
-            if ((first and 0xfe) == 0xfc) return true
+            // IPv4-mapped IPv6 must be evaluated with the IPv4 policy, not treated as public IPv6.
+            if (bytes.take(10).all { it == 0 } && bytes[10] == 0xff && bytes[11] == 0xff) {
+                return isNonPublicAddress(InetAddress.getByAddress(bytes.drop(12).map(Int::toByte).toByteArray()))
+            }
+            val first = bytes[0]
+            // Only global-unicast 2000::/3 is eligible; reject ULA, documentation and protocol-assignment space.
+            if ((first and 0xe0) != 0x20) return true
+            if (bytes[0] == 0x20 && bytes[1] == 0x01 && bytes[2] == 0x0d && bytes[3] == 0xb8) return true
+            if (bytes[0] == 0x20 && bytes[1] == 0x01 && bytes[2] == 0x00) return true
+            return false
         }
-        return false
+
+        if (bytes.size != 4) return true
+        val a = bytes[0]
+        val b = bytes[1]
+        val c = bytes[2]
+        return when {
+            a == 0 || a == 10 || a == 127 || a >= 224 -> true
+            a == 100 && b in 64..127 -> true // Shared address space (100.64.0.0/10)
+            a == 169 && b == 254 -> true
+            a == 172 && b in 16..31 -> true
+            a == 192 && b == 168 -> true
+            a == 192 && b == 0 && c == 0 -> true
+            a == 192 && b == 0 && c == 2 -> true
+            a == 192 && b == 88 && c == 99 -> true
+            a == 198 && b in 18..19 -> true
+            a == 198 && b == 51 && c == 100 -> true
+            a == 203 && b == 0 && c == 113 -> true
+            else -> false
+        }
     }
 
     private fun readBounded(input: java.io.InputStream, limit: Int): ByteArray {
