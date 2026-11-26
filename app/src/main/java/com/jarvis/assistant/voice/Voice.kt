@@ -45,6 +45,11 @@ class Speaker(context: Context) {
         }
 
     fun speak(text: String, onDone: () -> Unit = {}) {
+        // Russian mode always uses the verified Russian offline voice, not an arbitrary English cloud preset.
+        if (settings.speechLanguage == "ru") {
+            speakLocally(text, onDone)
+            return
+        }
         val config = cloudConfig()
         if (config != null) {
             usedCloud = true
