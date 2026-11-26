@@ -31,6 +31,13 @@ class ModelDownloaderTest {
     }
 
     @Test
+    fun createsDistinctTemporaryArchives() {
+        val first = tarBz2("first.txt" to "one")
+        val second = tarBz2("second.txt" to "two")
+        assertFalse("each archive must have its own temporary file", first.canonicalPath == second.canonicalPath)
+    }
+
+    @Test
     fun unpacksKokoroLayoutWithoutTopFolder() {
         val archive = tarBz2(
             "kokoro-int8-en-v0_19/" to null,
