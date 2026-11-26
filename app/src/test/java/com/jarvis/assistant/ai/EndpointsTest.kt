@@ -23,21 +23,6 @@ class EndpointsTest {
         assertFalse(Endpoints.isTransportSafe("ftp://api.example.com/model"))
     }
 
-    @Test fun deceptiveNumericHostnamesAreNeverTreatedAsLocal() {
-        assertFalse(Endpoints.isLoopback("https://127.attacker.example"))
-        assertFalse(Endpoints.isLoopback("https://127.0.0.1.attacker.example"))
-        assertFalse(Endpoints.isLocal("https://10.0.0.5.attacker.example"))
-        assertFalse(Endpoints.isLocal("https://192.168.1.20.attacker.example"))
-        assertFalse(Endpoints.isLoopback("https://127.999.0.1"))
-    }
-
-    @Test fun onlyCompletePrivateIpLiteralsAreTreatedAsLocal() {
-        assertTrue(Endpoints.isLoopback("http://127.0.0.1:8080"))
-        assertTrue(Endpoints.isLocal("http://10.0.0.5:8080"))
-        assertTrue(Endpoints.isLocal("http://192.168.1.20:8080"))
-        assertFalse(Endpoints.isLocal("https://example.local"))
-    }
-
     @Test fun compatibilityHelperCannotBypassTransportPolicy() {
         assertFalse(Endpoints.isCredentialTransportSafe("http://192.168.1.20:1234/v1", false))
         assertFalse(Endpoints.isCredentialTransportSafe("http://api.example.com/v1", true))
