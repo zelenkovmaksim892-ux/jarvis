@@ -24,6 +24,11 @@ class PhoneAgentSecurityTest {
         assertTrue(requiresSecondConfirmation("tap", JSONObject(), "Нажать элемент «Удалить»"))
         assertTrue(requiresSecondConfirmation("tap", JSONObject(), "Нажать элемент «Перевести деньги»"))
         assertTrue(requiresSecondConfirmation("tap", JSONObject(), "Нажать элемент «Подтвердить платёж»"))
+        assertTrue(requiresSecondConfirmation("tap", JSONObject(), "Нажать элемент «Поделиться»"))
+        assertTrue(requiresSecondConfirmation("tap", JSONObject(), "Нажать элемент «Ответить»"))
+        assertTrue(requiresSecondConfirmation("tap", JSONObject(), "Tap element Tweet"))
+        assertTrue(requiresSecondConfirmation("tap", JSONObject(), "Tap element Post"))
+        assertTrue(requiresSecondConfirmation("tap", JSONObject(), "Tap element Place order"))
     }
 
     @Test fun harmlessActionsDoNotGetExtraConfirmation() {

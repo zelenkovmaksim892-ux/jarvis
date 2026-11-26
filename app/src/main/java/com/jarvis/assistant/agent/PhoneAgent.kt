@@ -39,7 +39,7 @@ internal fun requiresSecondConfirmation(action: String, args: JSONObject, detail
     if (action != "tap") return false
     val normalized = details.lowercase(Locale.ROOT)
     return Regex(
-        """\b(send|call|dial|pay|payment|transfer|delete|purchase|buy|publish|submit|confirm)\b|отправ|позвон|оплат|перев|удал|покуп|публикац|подтверд|спис|вывест"""
+        """\b(send|call|dial|post|tweet|publish|share|reply|pay|payment|transfer|place order|buy now|delete|purchase|buy|submit|confirm)\b|отправ|позвон|оплат|перев|удал|покуп|публикац|опубликов|подтверд|спис|вывест|подел|ответ"""
     ).containsMatchIn(normalized)
 }
 
@@ -227,7 +227,7 @@ class PhoneAgent(
                                 "tap" -> {
                     val label = a11y.labelOf(a.getInt("element_id"))
                     a11y.tap(a.getInt("element_id")).also { result ->
-                        if (!result.contains("failed", true) && Regex("(?iu)\\b(send|call|dial|pay|payment|transfer|delete|purchase|buy|publish|submit|confirm)\\b|отправ|позвон|оплат|перев|удал|покуп|публикац|подтверж|спис|вывест").containsMatchIn(label)) {
+                        if (!result.contains("failed", true) && Regex("(?iu)\\b(send|call|dial|post|tweet|publish|share|reply|pay|payment|transfer|place order|buy now|delete|purchase|buy|submit|confirm)\\b|отправ|позвон|оплат|перев|удал|покуп|публикац|опубликов|подтверж|спис|вывест|подел|ответ").containsMatchIn(label)) {
                             host.onIrreversible()
                         }
                     }
