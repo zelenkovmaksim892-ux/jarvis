@@ -72,6 +72,13 @@ class Settings(context: Context) {
     private val secretStore = SecretStore()
 
     init {
+        // This is a Russian-first build. Upgrade old installs that inherited the previous English default.
+        if (!prefs.getBoolean("russian_speech_default_migrated", false)) {
+            if (!prefs.contains("speech_lang") || prefs.getString("speech_lang", null) == "en") {
+                prefs.edit().putString("speech_lang", "ru").apply()
+            }
+            prefs.edit().putBoolean("russian_speech_default_migrated", true).apply()
+        }
         // Migrate every legacy plaintext credential as soon as Settings is opened, not only when a screen uses it.
         migrateLegacyProvider()
         CLOUD_VOICES.forEach { voice ->
