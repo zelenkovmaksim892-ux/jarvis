@@ -78,7 +78,7 @@ object RussianVoice {
                 }
                 playback.finish()
                 scheduleUnload()
-                if (AudioOut.isCurrent(ticket)) main.post(onDone)
+                if (AudioOut.isCurrent(ticket)) main.post { onDone() }
             } catch (e: Throwable) {
                 lastError = e.message ?: e.javaClass.simpleName
                 Log.e(TAG, "Russian speech failed", e)
