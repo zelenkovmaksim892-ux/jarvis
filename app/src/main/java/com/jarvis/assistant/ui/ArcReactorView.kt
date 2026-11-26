@@ -19,7 +19,7 @@ class ArcReactorView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
 ) : View(context, attrs) {
 
-    enum class Mode { OFF, IDLE, LISTENING, WORKING }
+    enum class Mode { OFF, IDLE, LISTENING, WORKING, SPEAKING }
 
     var mode: Mode = Mode.OFF
         set(value) { field = value; invalidate() }
@@ -43,6 +43,7 @@ class ArcReactorView @JvmOverloads constructor(
         val color = when (mode) {
             Mode.OFF -> Color.rgb(58, 58, 62)
             Mode.WORKING -> Color.rgb(217, 164, 74)
+            Mode.SPEAKING -> Color.rgb(65, 190, 255)
             else -> Color.rgb(242, 242, 242)
         }
 
@@ -65,10 +66,28 @@ class ArcReactorView @JvmOverloads constructor(
                 arc.set(cx - ar, cy - ar, cx + ar, cy + ar)
                 canvas.drawArc(arc, t * 240f, 80f, false, ring)
             }
+            Mode.SPEAKING -> {
+                // Three cyan energy waves pulse outward while Jarvis speaks.
+                ring.strokeWidth = r * 0.035f
+                for (i in 0 until 3) {
+                    val phase = (t * 1.35f + i * 0.333f) % 1f
+                    ring.color = withAlpha(color, (170 * (1f - phase)).toInt())
+                    canvas.drawCircle(cx, cy, core + (r * 0.95f - core) * phase, ring)
+                }
+                val ar = core + r * 0.2f
+                ring.strokeWidth = r * 0.045f
+                ring.color = color
+                arc.set(cx - ar, cy - ar, cx + ar, cy + ar)
+                canvas.drawArc(arc, -t * 300f, 115f, false, ring)
+            }
             else -> {}
         }
 
-        val breathe = if (mode == Mode.IDLE) 1f + 0.03f * sin(t * 1.6f) else 1f
+        val breathe = when (mode) {
+            Mode.IDLE -> 1f + 0.03f * sin(t * 1.6f)
+            Mode.SPEAKING -> 1f + 0.12f * sin(t * 7f)
+            else -> 1f
+        }
         fill.color = color
         canvas.drawCircle(cx, cy, core * breathe, fill)
 
