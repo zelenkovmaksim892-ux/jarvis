@@ -231,7 +231,7 @@ class JarvisService : Service() {
     private fun onMicProblem(problem: String) {
         if (destroyed || state != State.IDLE) return
         when (problem) {
-            "ok" -> update("Say \"${settings.wakePromptPhrase}\"")
+            "ok" -> update(if (settings.speechLanguage == "ru") "Скажи «${settings.wakePromptPhrase}»" else "Say \"${settings.wakePromptPhrase}\"")
             "blocked" -> update(if (settings.speechLanguage == "ru") "Android блокирует микрофон. Открой Jarvis и попробуй ещё раз." else "Android is blocking the microphone. Open Jarvis once, then try again.")
             else -> update(if (settings.speechLanguage == "ru") "Микрофон занят. Переподключаюсь…" else "Microphone busy. Reconnecting…")
         }
