@@ -185,6 +185,7 @@ class CloudVoiceTest {
     fun speakerFallsBackToALocalVoiceWhenTheCloudFails() {
         server.enqueue(MockResponse().setResponseCode(500))
         val settings = Settings(ctx)
+        settings.speechLanguage = "en" // Exercise cloud-to-local English fallback, not the Russian-only voice path.
         settings.voiceEngine = "custom"
         settings.saveCloudVoice(CloudVoiceConfig("custom", "", "tts-1", "alloy", url()))
         var done = false
