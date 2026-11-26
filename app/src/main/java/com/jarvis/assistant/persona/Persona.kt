@@ -36,16 +36,18 @@ object Persona {
 
     /** Short acknowledgements for slow requests. Never used for instant commands. */
     val ACKNOWLEDGEMENTS = listOf("One moment.", "Let me check.", "Working on it.", "Give me a second.")
+    val RUSSIAN_ACKNOWLEDGEMENTS = listOf("Секунду.", "Сейчас проверю.", "Уже занимаюсь.", "Дай мне немного времени.")
 
     /** Picks an acknowledgement, never the same one twice in a row. */
     class AckPicker(private val random: java.util.Random = java.util.Random()) {
         private var last = -1
 
-        fun next(): String {
-            var i = random.nextInt(ACKNOWLEDGEMENTS.size)
-            if (i == last) i = (i + 1) % ACKNOWLEDGEMENTS.size
+        fun next(language: String = "en"): String {
+            val choices = if (language == "ru") RUSSIAN_ACKNOWLEDGEMENTS else ACKNOWLEDGEMENTS
+            var i = random.nextInt(choices.size)
+            if (i == last) i = (i + 1) % choices.size
             last = i
-            return ACKNOWLEDGEMENTS[i]
+            return choices[i]
         }
     }
 }
