@@ -207,6 +207,9 @@ class FastCommandRouterTest {
     }
     @Test fun russianCommands() {
         assertEquals(FastCommand.OpenApp("whatsapp"), p("открой WhatsApp"))
+        assertEquals(FastCommand.OpenCamera, p("открой камеру"))
+        assertEquals(FastCommand.SetMode(AiMode.OFFLINE), p("включи режим офлайн"))
+        assertEquals(FastCommand.SetLanguage("ru"), p("переключись на русский"))
         assertEquals(FastCommand.Press("back"), p("назад"))
         assertEquals(FastCommand.Press("home"), p("домой"))
         assertEquals(FastCommand.Press("notifications"), p("покажи уведомления"))
