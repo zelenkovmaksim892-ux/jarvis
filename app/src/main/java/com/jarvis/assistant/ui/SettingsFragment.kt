@@ -156,7 +156,9 @@ class SettingsFragment : Fragment() {
         val russian = settings.speechLanguage == "ru"
         val engine = settings.voiceEngine
         ui.engineChips.visibility = if (russian) View.GONE else View.VISIBLE
-        ui.kokoroSection.visibility = if (!russian && engine == "kokoro") View.VISIBLE else View.GONE
+        ui.kokoroSection.visibility = if (russian || engine == "kokoro") View.VISIBLE else View.GONE
+        ui.voiceChips.visibility = if (russian) View.GONE else View.VISIBLE
+        ui.kokoroTip.visibility = if (russian) View.GONE else View.VISIBLE
         val preset = if (russian) null else CLOUD_VOICES.firstOrNull { it.id == engine }
         ui.cloudSection.visibility = if (preset != null) View.VISIBLE else View.GONE
         ui.voiceError.visibility = View.GONE
