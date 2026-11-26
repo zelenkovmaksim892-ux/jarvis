@@ -641,7 +641,7 @@ class JarvisService : Service() {
         val fg = board.foreground()
         val moved = fg != null && board.moveToBackground(fg.id)
         if (moved) {
-            history.step(fg.id, "Moved to the background.")
+            history.step(fg.id, if (settings.speechLanguage == "ru") "Перенёс задачу в фон." else "Moved to the background.")
             cancelAck()
         }
         interruptedWork = false
@@ -650,10 +650,18 @@ class JarvisService : Service() {
             moved && then != null -> runTask(then)
             !moved && fg != null && then != null -> handleCancel(then) // a screen task cannot wait in the background: the new command replaces it
             else -> {
-                val msg = when {
-                    fg == null -> "Nothing is running."
-                    moved -> "Okay, I'll keep working on it in the background."
-                    else -> "That task is using the screen, so it can't run in the background. Say cancel to stop it."
+                val msg = if (settings.speechLanguage == "ru") {
+                    when {
+                        fg == null -> "Сейчас ничего не выполняется."
+                        moved -> "Хорошо, продолжу выполнять задачу в фоне."
+                        else -> "Эта задача требует экран, поэтому в фоне её выполнить нельзя. Скажи «отмена», чтобы остановить её."
+                    }
+                } else {
+                    when {
+                        fg == null -> "Nothing is running."
+                        moved -> "Okay, I'll keep working on it in the background."
+                        else -> "That task is using the screen, so it can't run in the background. Say cancel to stop it."
+                    }
                 }
                 if (moved || fg == null) { state = State.IDLE; island { it.hide() } }
                 else { state = State.WORKING; island { it.working(fg?.text ?: "") } }
