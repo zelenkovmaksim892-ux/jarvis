@@ -47,7 +47,7 @@ class SystemVoice(context: Context) : VoiceEngine {
             if (!ready) { onDone(); return@post }
             // Use an installed Russian TTS voice for Russian replies, even if the phone UI is in another language.
             val hasCyrillic = text.any { it.code in 0x0400..0x04FF }
-            tts.language = if (hasCyrillic) Locale.forLanguageTag("ru-RU") else Locale.getDefault()
+            tts.setLanguage(if (hasCyrillic) Locale.forLanguageTag("ru-RU") else Locale.getDefault())
             val id = UUID.randomUUID().toString()
             pending[id] = onDone
             tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, id)
