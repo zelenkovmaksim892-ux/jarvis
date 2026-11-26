@@ -52,7 +52,7 @@ class MemoryStoreTest {
         assertTrue(local.contains("short answers"))
         assertTrue(local.contains("HomeNet"))
         val cloud = store.promptContext("what is my wifi name", toLocal = false, shareWithCloud = false)
-        assertTrue(cloud.contains("short answers"))
+        assertFalse("style preferences must remain private when cloud sharing is off", cloud.contains("short answers"))
         assertFalse(cloud.contains("HomeNet"))
         val sharedCloud = store.promptContext("what is my wifi name", toLocal = false, shareWithCloud = true)
         assertTrue(sharedCloud.contains("HomeNet"))
