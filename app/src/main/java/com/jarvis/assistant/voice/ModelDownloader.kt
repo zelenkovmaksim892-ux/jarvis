@@ -17,11 +17,12 @@ object ModelDownloader {
     private const val MAX_ARCHIVE_BYTES = 512L * 1024 * 1024
     private const val MAX_EXPANDED_BYTES = 2L * 1024 * 1024 * 1024
     private const val MAX_ARCHIVE_ENTRIES = 10_000
-    private val ALLOWED_DOWNLOAD_HOSTS = setOf("github.com", "release-assets.githubusercontent.com")
+    private const val MAX_REDIRECTS = 6
+    private val ALLOWED_DOWNLOAD_HOSTS = setOf("github.com", "release-assets.githubusercontent.com", "objects.githubusercontent.com", "github-releases.githubusercontent.com")
 
     private val downloadClient by lazy {
         OkHttpClient.Builder()
-            .followRedirects(true)
+            .followRedirects(false)
             // Never allow an HTTPS model download to be downgraded to plain HTTP.
             .followSslRedirects(false)
             .build()
@@ -77,11 +78,8 @@ object ModelDownloader {
 
         val tmp = File(context.cacheDir, target.name + ".download")
         try {
-            downloadClient.newCall(Request.Builder().url(url).build()).execute().use { resp ->
+            executeAllowlistedDownload(url).use { resp ->
                 if (!resp.isSuccessful) throw IOException("Download failed: HTTP ${resp.code}")
-                if (!resp.request.url.isHttps || resp.request.url.host !in ALLOWED_DOWNLOAD_HOSTS) {
-                    throw IOException("Refusing an untrusted model download redirect")
-                }
                 val body = resp.body ?: throw IOException("Empty download")
                 val total = body.contentLength()
                 if (total > MAX_ARCHIVE_BYTES || (total >= 0 && total != expectedSize)) {
@@ -114,6 +112,40 @@ object ModelDownloader {
         progress(100)
     }
 
+
+    /**
+     * Follow redirects manually. Validate each destination before sending a request to it.
+     * Checking resp.request.url after automatic redirects is too late.
+     */
+    internal fun executeAllowlistedDownload(url: String): okhttp3.Response {
+        var current = validateDownloadUrl(url)
+        repeat(MAX_REDIRECTS + 1) { hop ->
+            val response = downloadClient.newCall(Request.Builder().url(current).build()).execute()
+            if (response.code !in setOf(301, 302, 303, 307, 308)) {
+                if (!response.request.url.isHttps || response.request.url.host !in ALLOWED_DOWNLOAD_HOSTS) {
+                    response.close()
+                    throw IOException("Refusing an untrusted model download destination")
+                }
+                return response
+            }
+            val location = response.header("Location")
+            response.close()
+            if (hop == MAX_REDIRECTS || location.isNullOrBlank()) {
+                throw IOException("Too many redirects or redirect without a location")
+            }
+            val next = current.resolve(location) ?: throw IOException("Invalid model download redirect")
+            current = validateDownloadUrl(next.toString())
+        }
+        throw IOException("Too many redirects")
+    }
+
+    internal fun validateDownloadUrl(value: String): okhttp3.HttpUrl {
+        val parsed = runCatching { URI(value) }.getOrNull() ?: throw IOException("Invalid model download URL")
+        if (!parsed.scheme.equals("https", ignoreCase = true) || parsed.host.isNullOrBlank() ||
+            parsed.host.lowercase() !in ALLOWED_DOWNLOAD_HOSTS || parsed.userInfo != null || parsed.fragment != null
+        ) throw IOException("Model downloads must use an allowlisted HTTPS host without embedded credentials")
+        return runCatching { okhttp3.HttpUrl.get(value) }.getOrElse { throw IOException("Invalid model download URL") }
+    }
 
     /** Checks a downloaded model archive against a pinned size and, when available, a trusted SHA-256. */
     internal fun verifyArchive(file: File, expectedSize: Long, expectedSha256: String?) {

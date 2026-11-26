@@ -63,6 +63,15 @@ class ModelDownloaderTest {
 
 
     @Test
+    fun downloadUrlValidationRejectsUntrustedHostsAndNonHttps() {
+        assertTrue(runCatching { ModelDownloader.validateDownloadUrl("https://github.com/owner/repo/releases/download/v1/model.tar.bz2") }.isSuccess)
+        assertTrue(runCatching { ModelDownloader.validateDownloadUrl("https://release-assets.githubusercontent.com/asset") }.isSuccess)
+        assertTrue(runCatching { ModelDownloader.validateDownloadUrl("https://evil.example/model.tar.bz2") }.isFailure)
+        assertTrue(runCatching { ModelDownloader.validateDownloadUrl("http://github.com/model.tar.bz2") }.isFailure)
+        assertTrue(runCatching { ModelDownloader.validateDownloadUrl("https://github.com.evil.example/model.tar.bz2") }.isFailure)
+    }
+
+    @Test
     fun verifiesPinnedArchiveSizeAndSha256() {
         val archive = tmp.newFile("pinned.tar.bz2").apply { writeText("trusted model archive") }
         val digest = MessageDigest.getInstance("SHA-256").digest(archive.readBytes())
