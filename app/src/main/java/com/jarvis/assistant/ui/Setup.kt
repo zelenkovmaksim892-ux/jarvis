@@ -30,6 +30,7 @@ import com.jarvis.assistant.voice.Kokoro
 import com.jarvis.assistant.voice.ModelDownloader
 import com.jarvis.assistant.voice.SpeechModel
 import com.jarvis.assistant.voice.RussianVoice
+import com.jarvis.assistant.voice.RussianSpeechModel
 import com.jarvis.assistant.voice.WakeModel
 
 /** The things Jarvis needs before it can work, shared by onboarding, home and settings. */
@@ -60,7 +61,7 @@ object Setup {
         Item.PHONE_CONTROL -> isAccessibilityEnabled(context)
         Item.BACKGROUND -> context.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(context.packageName)
         Item.WAKE_WORD -> WakeModel.isInstalled(context)
-        Item.SPEECH -> Settings(context).speechLanguage != "en" || SpeechModel.isInstalled(context)
+        Item.SPEECH -> if (Settings(context).speechLanguage == "ru") RussianSpeechModel.isInstalled(context) else SpeechModel.isInstalled(context)
         Item.VOICE -> if (Settings(context).speechLanguage == "ru") RussianVoice.isInstalled(context) else Kokoro.isInstalled(context)
     }
 
@@ -155,7 +156,11 @@ object Downloads {
                     } else {
                         ModelDownloader.downloadKokoro(context, report)
                     }
-                    Setup.Item.SPEECH -> ModelDownloader.downloadSpeech(context, report)
+                    Setup.Item.SPEECH -> if (com.jarvis.assistant.Settings(context).speechLanguage == "ru") {
+                        ModelDownloader.downloadRussianSpeech(context, report)
+                    } else {
+                        ModelDownloader.downloadSpeech(context, report)
+                    }
                     else -> ModelDownloader.downloadWakeWord(context, report)
                 }
                 null
