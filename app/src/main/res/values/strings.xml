@@ -99,6 +99,7 @@
     <string name="mode_offline">Offline</string>
     <string name="lang_en">English · offline</string>
     <string name="lang_hi">Hindi / Hinglish · Google</string>
+    <string name="lang_ru">Russian · Android recognition</string>
     <string name="runtime_unsupported">This build has no on-device runtime. The model in Termux or your cloud models are used instead.</string>
     <string name="runtime_downloading_percent">Downloading the on-device model: %1$d%% (%2$s)</string>
     <string name="runtime_downloading">Downloading the on-device model… (%1$s)</string>
@@ -117,6 +118,7 @@
     <string name="mode_online_hint">Cloud models first, the on-phone model if the internet is down.</string>
     <string name="mode_offline_hint">Only the on-phone model answers. Nothing leaves your phone.</string>
     <string name="lang_hi_hint">Uses Google speech recognition (needs the Google app; it may use the internet). Wake word still works offline. Replies are spoken in English.</string>
+    <string name="lang_ru_hint">Russian commands use the Android speech recognition service, usually Google; internet may be required. Replies use the phone’s Russian system voice if installed. The wake phrase remains “Hey Jarvis”.</string>
     <string name="lang_en_hint">Offline recognition on your phone. English only.</string>
     <string name="models_title">Models</string>
     <string name="models_intro">Jarvis uses your primary model (★). Tap a model to edit it or make it primary.</string>
