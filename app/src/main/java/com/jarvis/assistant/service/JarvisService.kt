@@ -792,7 +792,10 @@ class JarvisService : Service() {
                     return@execute
                 }
                 history.step(id, outcome.message)
-                val message = learnFromRetry(outcome)
+                val rawMessage = learnFromRetry(outcome)
+                val message = if (settings.speechLanguage == "ru") {
+                    RussianMessages.translate(rawMessage, outcome.success)
+                } else rawMessage
                 main.post { deliver(task, id, AgentResult(outcome.success, message), keepInHistory = keep, via = "instant") }
             }
             return
