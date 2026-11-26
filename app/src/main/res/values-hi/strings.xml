@@ -240,4 +240,5 @@
     <string name="step_of">कदम %1$d / %2$d\n\n%3$s</string>
     <string name="lang_ru">रूसी · Android वाक् पहचान</string>
     <string name="lang_ru_hint">रूसी आदेश Android की वाक् पहचान सेवा (आमतौर पर Google) से पहचाने जाते हैं; इंटरनेट की आवश्यकता हो सकती है। यदि फ़ोन में रूसी सिस्टम आवाज़ स्थापित है, तो उत्तर उसी में बोले जाएंगे। सक्रिय करने वाला वाक्यांश अभी भी “Hey Jarvis” है।</string>
+    <string name="ru_voice_problem">रूसी आवाज़ में समस्या: %1$s</string>
 </resources>
