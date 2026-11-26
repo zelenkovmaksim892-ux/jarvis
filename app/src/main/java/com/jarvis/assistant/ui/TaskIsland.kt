@@ -113,7 +113,7 @@ class TaskIsland(private val service: AccessibilityService) {
         render()
     }
 
-    /** The outcome. The island goes away a few seconds after Jarvis finishes saying it. */
+    /** The outcome. The island remains visible for two minutes after Jarvis finishes speaking. */
     fun finish(success: Boolean, text: String) {
         mode = if (success) Mode.DONE else Mode.FAILED
         status = text
