@@ -100,7 +100,7 @@
     <string name="mode_offline">Офлайн</string>
     <string name="lang_en">Английский · офлайн</string>
     <string name="lang_hi">Хинди / хинглиш · Google</string>
-    <string name="lang_ru">Русский · распознавание Android</string>
+    <string name="lang_ru">Русский · офлайн-распознавание</string>
     <string name="runtime_unsupported">В этой сборке нет встроенного механизма запуска локальных моделей. Используется модель в Termux или облачные модели.</string>
     <string name="runtime_downloading_percent">Скачивание локальной модели: %1$d%% (%2$s)</string>
     <string name="runtime_downloading">Скачивание локальной модели… (%1$s)</string>
