@@ -785,17 +785,17 @@ class JarvisService : Service() {
                 trace.mark("acted")
                 if (outcome.irreversible) board.markIrreversible(id)
                 if (!outcome.handled) {
-                    history.step(id, "The direct command could not handle this request. Trying phone control.")
+                    history.step(id, if (settings.speechLanguage == "ru") "Простая команда не подошла. Передаю задачу голосовому помощнику." else "The direct command could not handle this request. Trying phone control.")
                     // Not something Jarvis can do directly (an app it cannot find, say): the model gets it, as it always did.
                     if (fast is FastCommand.OpenApp) failedApp = fast.query to SystemClock.elapsedRealtime()
                     main.post { if (!isStale(id) && !destroyed) runModelTask(task, id, TaskType.PHONE) }
                     return@execute
                 }
-                history.step(id, outcome.message)
                 val rawMessage = learnFromRetry(outcome)
                 val message = if (settings.speechLanguage == "ru") {
                     RussianMessages.translate(rawMessage, outcome.success)
                 } else rawMessage
+                history.step(id, message)
                 main.post { deliver(task, id, AgentResult(outcome.success, message), keepInHistory = keep, via = "instant") }
             }
             return
