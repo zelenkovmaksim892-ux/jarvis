@@ -195,7 +195,7 @@ class SettingsFragment : Fragment() {
             Toast.makeText(requireContext(), getString(R.string.add_key_first, cloud.name), Toast.LENGTH_SHORT).show()
             return
         }
-        if (settings.voiceEngine == "kokoro" && !Kokoro.isInstalled(requireContext())) {
+        if (settings.speechLanguage != "ru" && settings.voiceEngine == "kokoro" && !Kokoro.isInstalled(requireContext())) {
             Toast.makeText(requireContext(), getString(R.string.kokoro_not_downloaded), Toast.LENGTH_SHORT).show()
         }
         val voice = when {
