@@ -118,7 +118,7 @@
     <string name="mode_online_hint">Сначала используются облачные модели, а при отсутствии интернета — локальная модель на телефоне.</string>
     <string name="mode_offline_hint">Отвечает только локальная модель на телефоне. Данные не покидают телефон.</string>
     <string name="lang_hi_hint">Используется распознавание речи Android/Google (может потребоваться интернет). Фраза активации продолжает работать офлайн.</string>
-    <string name="lang_ru_hint">Русские команды распознаются через установленный сервис Android (обычно Google); может потребоваться интернет. Ответы произносятся системным русским голосом, если он установлен. Фраза активации пока остаётся «Hey Jarvis».</string>
+    <string name="lang_ru_hint">Русские команды распознаются через сервис Android (обычно Google); для него может потребоваться интернет. После загрузки модели Jarvis отвечает офлайн русским голосом Ruslan. Фраза активации пока остаётся «Hey Jarvis».</string>
     <string name="lang_en_hint">Распознавание речи выполняется на телефоне без интернета. Поддерживается только английский язык.</string>
     <string name="models_title">Модели</string>
     <string name="models_intro">Jarvis использует основную модель (★). Нажмите на модель, чтобы изменить её настройки или назначить основной.</string>
@@ -179,8 +179,8 @@
     <string name="ob_bg_body">Разрешите Jarvis работать в фоне, чтобы он мог слышать «Hey Jarvis», даже когда экран выключен.\n\nНа телефонах Samsung, Xiaomi и некоторых других также установите для Jarvis режим батареи «Без ограничений».</string>
     <string name="continue_anyway">Всё равно продолжить</string>
     <string name="ob_dl_title">Слух и голос</string>
-    <string name="ob_dl_body">Три компонента, которые полностью работают на телефоне: распознавание «Hey Jarvis», распознавание ваших голосовых команд и естественный голос Kokoro. По возможности используйте Wi-Fi. Можно продолжать настройку во время скачивания.</string>
-    <string name="download_all">Скачать всё (175 МБ)</string>
+    <string name="ob_dl_body">Нужно скачать два компонента: распознавание фразы «Hey Jarvis» и русскую офлайн-модель голоса Ruslan. Сами русские команды распознаются через сервис Android, поэтому интернет может потребоваться. По возможности используйте Wi-Fi. Можно продолжать настройку во время скачивания.</string>
+    <string name="download_all">Скачать всё (около 85 МБ)</string>
     <string name="ob_model_title">Подключите мой интеллект</string>
     <string name="ob_model_body_none">Выберите ИИ, который будет обрабатывать запросы: Claude, OpenAI или модель на вашем компьютере через LM Studio либо Ollama. Позже можно добавить другие модели и выбрать основную.</string>
     <string name="ob_model_body">Моим интеллектом будет %1$s. Позже вы сможете добавить другие модели и изменить основную на странице «Модели».</string>
@@ -196,9 +196,9 @@
     <string name="item_wake_title">Фраза активации</string>
     <string name="item_wake_sub">Офлайн-распознавание «Hey Jarvis» · 17 МБ</string>
     <string name="item_speech_title">Распознавание речи</string>
-    <string name="item_speech_sub">Понимает команды без интернета · 57 МБ</string>
-    <string name="item_voice_title">Голос Kokoro</string>
-    <string name="item_voice_sub">Естественный голос, работающий на устройстве · 100 МБ</string>
+    <string name="item_speech_sub">Распознавание через сервис Android; интернет может потребоваться</string>
+    <string name="item_voice_title">Русский голос Jarvis</string>
+    <string name="item_voice_sub">Офлайн-голос Ruslan · около 67 МБ</string>
     <string name="toast_a11y">Нажмите «Установленные приложения» (или «Скачанные приложения»), затем «Управление телефоном Jarvis» и включите службу.</string>
     <string name="toast_battery">Найдите Jarvis в списке и установите режим «Не оптимизировать» или «Без ограничений».</string>
     <string name="unpacking">Распаковка…</string>
