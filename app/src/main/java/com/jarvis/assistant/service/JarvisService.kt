@@ -389,7 +389,8 @@ class JarvisService : Service() {
     }
 
     /** What Jarvis says when woken and the user has not started speaking: the day's first greeting, otherwise "Yes?". */
-    private fun wakePrompt(): String = greeting.takeGreeting() ?: "Yes?"
+    private fun wakePrompt(): String =
+        if (settings.speechLanguage == "ru") "Слушаю." else greeting.takeGreeting() ?: "Yes?"
 
     /** English uses the downloaded offline model; Hindi and Russian use Android's language-specific recognizer. */
     private val useOfflineAsr get() = voice.canTranscribe && settings.speechLanguage == "en"
@@ -1132,7 +1133,7 @@ class JarvisService : Service() {
         private const val TRIM_RUNNING_CRITICAL = 15 // ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL
 
         private const val CHAT_PROMPT = "You are Jarvis, a helpful Android phone assistant. " +
-            "Reply naturally and concisely in the user's language, including Hindi or Hinglish. " +
+            "Reply naturally and concisely in the user's language, including Russian, Hindi or Hinglish. " +
             "You are in conversation mode and cannot operate the phone in this mode. " +
             "Never claim you performed a phone action."
 
