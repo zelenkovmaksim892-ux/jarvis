@@ -83,6 +83,7 @@ class TaskIsland(private val service: AccessibilityService) {
 
     private val dismiss = Runnable { hide() }
     private val autoCollapse = Runnable { collapse() }
+    private val visibleDurationMs = 120_000L
 
     val isShowing get() = ui != null
 
@@ -125,6 +126,7 @@ class TaskIsland(private val service: AccessibilityService) {
     /** Jarvis is saying [text]: the border moves with its voice. */
     fun speaking(text: String, level: () -> Float?) {
         speaking = true
+        main.removeCallbacks(dismiss)
         if (mode != Mode.LISTENING) status = text
         render()
         ui?.island?.speechLevel = level
@@ -164,7 +166,9 @@ class TaskIsland(private val service: AccessibilityService) {
 
     private fun scheduleDismiss() {
         main.removeCallbacks(dismiss)
-        if ((mode == Mode.DONE || mode == Mode.FAILED) && !speaking && !expanded) main.postDelayed(dismiss, 4000)
+        if ((mode == Mode.DONE || mode == Mode.FAILED) && !speaking) {
+            main.postDelayed(dismiss, visibleDurationMs)
+        }
     }
 
     // ---- Drawing the content ----
@@ -179,7 +183,11 @@ class TaskIsland(private val service: AccessibilityService) {
             b.islandResult.setImageResource(if (mode == Mode.DONE) R.drawable.ic_check else R.drawable.ic_stop)
             b.islandResult.imageTintList = ColorStateList.valueOf(service.color(if (mode == Mode.DONE) R.color.ok else R.color.warn))
         }
-        val orbMode = if (mode == Mode.LISTENING) ArcReactorView.Mode.LISTENING else ArcReactorView.Mode.WORKING
+        val orbMode = when {
+            speaking -> ArcReactorView.Mode.SPEAKING
+            mode == Mode.LISTENING -> ArcReactorView.Mode.LISTENING
+            else -> ArcReactorView.Mode.WORKING
+        }
         b.islandOrb.mode = orbMode
         b.expOrb.mode = if (done) ArcReactorView.Mode.IDLE else orbMode
 
@@ -276,7 +284,7 @@ class TaskIsland(private val service: AccessibilityService) {
         val p = params ?: return
         if (expanded) return
         expanded = true
-        main.removeCallbacks(dismiss)
+        // Keep the result visible for its full two-minute lifetime, even while expanded.
         // Grow the window to the card's size first; the shape then springs out inside it.
         p.width = expandedWidth()
         p.flags = p.flags or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
@@ -285,7 +293,7 @@ class TaskIsland(private val service: AccessibilityService) {
         runCatching { wm.updateViewLayout(b.root, p) }
         animateTo(1f, 520, SpringInterpolator(0.68f))
         main.removeCallbacks(autoCollapse)
-        main.postDelayed(autoCollapse, 12_000)
+        main.postDelayed(autoCollapse, visibleDurationMs)
     }
 
     fun collapse() {
