@@ -60,10 +60,13 @@ class CleanTranscriptTest {
 
     @Test
     fun stopPhrasesAreRecognised() {
-        listOf("Stop", "stop it", "Never mind", "Shut up.", "Okay, stop", "that's enough").forEach {
+        listOf("Stop", "stop it", "Never mind", "Shut up.", "Okay, stop", "that's enough",
+            "Стоп", "Остановись", "Хватит", "Отмени", "Прекрати").forEach {
             assertTrue(it, VoiceInput.isStopCommand(it))
         }
-        listOf("Stop the music", "Cancel my alarm", "Wait for me").forEach { assertFalse(it, VoiceInput.isStopCommand(it)) }
+        listOf("Stop the music", "Cancel my alarm", "Wait for me", "Отмени будильник").forEach {
+            assertFalse(it, VoiceInput.isStopCommand(it))
+        }
     }
 
     @Test
