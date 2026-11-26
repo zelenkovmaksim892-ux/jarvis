@@ -311,7 +311,6 @@ class TaskIsland(private val service: AccessibilityService) {
             p.width = WindowManager.LayoutParams.WRAP_CONTENT
             p.flags = p.flags and WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH.inv()
             runCatching { wm.updateViewLayout(b.root, p) }
-            scheduleDismiss()
         }
     }
 
