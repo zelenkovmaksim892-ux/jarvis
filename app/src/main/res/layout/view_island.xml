@@ -22,8 +22,8 @@
 
         <com.jarvis.assistant.ui.ArcReactorView
             android:id="@+id/islandOrb"
-            android:layout_width="20dp"
-            android:layout_height="20dp" />
+            android:layout_width="28dp"
+            android:layout_height="28dp" />
 
         <ImageView
             android:id="@+id/islandResult"
@@ -71,8 +71,8 @@
 
             <com.jarvis.assistant.ui.ArcReactorView
                 android:id="@+id/expOrb"
-                android:layout_width="26dp"
-                android:layout_height="26dp" />
+                android:layout_width="42dp"
+                android:layout_height="42dp" />
 
             <TextView
                 android:layout_width="0dp"
