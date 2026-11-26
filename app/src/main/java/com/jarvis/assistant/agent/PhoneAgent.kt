@@ -301,8 +301,15 @@ class PhoneAgent(
         val notes = settings.personalNotes.trim().takeIf { mayShareNotes }.orEmpty()
         val memory = gate.memoryContext(task, profile)
         return buildString {
-            append("Current date/time: $now.\n")
-            if (notes.isNotEmpty()) append("User notes:\n$notes\n")
+            append("Current date/time: $now.\\n")
+            append(
+                when (settings.speechLanguage) {
+                    "ru" -> "LANGUAGE REQUIREMENT: Speak and write to the user only in natural Russian. All confirmations, clarifying questions, errors, task summaries and final answers must be in Russian. Keep app names, URLs and technical identifiers unchanged. Switch languages only if the user explicitly asks.\\n"
+                    "hi" -> "LANGUAGE REQUIREMENT: Respond to the user in Hindi or Hinglish, matching the language they use.\\n"
+                    else -> "LANGUAGE REQUIREMENT: Respond in the same language as the user.\\n"
+                },
+            )
+            if (notes.isNotEmpty()) append("User notes:\\n$notes\\n")
             if (memory.isNotEmpty()) append(memory).append('\n')
             append('\n')
         }
