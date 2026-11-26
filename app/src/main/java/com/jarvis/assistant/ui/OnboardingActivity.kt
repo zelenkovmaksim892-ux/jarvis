@@ -25,7 +25,7 @@ class OnboardingActivity : AppCompatActivity() {
     private val downloads: List<Setup.Item>
         get() = buildList {
             add(Setup.Item.WAKE_WORD)
-            if (settings.speechLanguage == "en") add(Setup.Item.SPEECH)
+            add(Setup.Item.SPEECH)
             add(Setup.Item.VOICE)
         }
 
