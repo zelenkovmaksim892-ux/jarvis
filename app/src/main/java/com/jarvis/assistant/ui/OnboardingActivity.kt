@@ -22,7 +22,12 @@ import com.jarvis.assistant.service.JarvisService
  */
 class OnboardingActivity : AppCompatActivity() {
 
-    private val DOWNLOADS = listOf(Setup.Item.WAKE_WORD, Setup.Item.SPEECH, Setup.Item.VOICE)
+    private val downloads: List<Setup.Item>
+        get() = buildList {
+            add(Setup.Item.WAKE_WORD)
+            if (settings.speechLanguage == "en") add(Setup.Item.SPEECH)
+            add(Setup.Item.VOICE)
+        }
 
     private enum class Step { WELCOME, MICROPHONE, PHONE_CONTROL, BACKGROUND, DOWNLOADS, MODEL, DONE }
 
@@ -73,7 +78,7 @@ class OnboardingActivity : AppCompatActivity() {
         Step.MICROPHONE -> Setup.isDone(this, Setup.Item.MICROPHONE)
         Step.PHONE_CONTROL -> Setup.isDone(this, Setup.Item.PHONE_CONTROL)
         Step.BACKGROUND -> Setup.isDone(this, Setup.Item.BACKGROUND)
-        Step.DOWNLOADS -> DOWNLOADS.all { Setup.isDone(this, it) }
+        Step.DOWNLOADS -> downloads.all { Setup.isDone(this, it) }
         Step.MODEL -> settings.primary() != null
         else -> false
     }
@@ -116,7 +121,7 @@ class OnboardingActivity : AppCompatActivity() {
                 val downloading = Downloads.progress.isNotEmpty()
                 show(R.drawable.ic_voice, R.string.ob_dl_title, getString(R.string.ob_dl_body),
                     when { done || downloading -> R.string.continue_; else -> R.string.download_all })
-                refreshDownloads = Setup.bindRows(this, ui.stepExtra, DOWNLOADS).also { it() }
+                refreshDownloads = Setup.bindRows(this, ui.stepExtra, downloads).also { it() }
             }
             Step.MODEL -> {
                 val primary = settings.primary()
@@ -173,7 +178,7 @@ class OnboardingActivity : AppCompatActivity() {
             Step.BACKGROUND -> { attempted += step; Setup.act(this, Setup.Item.BACKGROUND) }
             Step.DOWNLOADS -> {
                 if (Downloads.progress.isNotEmpty()) { next(); return }
-                DOWNLOADS.filter { !Setup.isDone(this, it) }.forEach { Setup.act(this, it) }
+                downloads.filter { !Setup.isDone(this, it) }.forEach { Setup.act(this, it) }
             }
             Step.MODEL -> startActivity(Intent(this, ModelEditActivity::class.java))
             Step.DONE -> finishOnboarding(activate = true)
