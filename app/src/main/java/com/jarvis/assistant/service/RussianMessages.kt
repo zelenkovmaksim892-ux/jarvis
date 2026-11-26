@@ -94,7 +94,9 @@ internal object RussianMessages {
         Regex("""^Volume is (\d+) percent\.$""").matchEntire(message)?.let {
             return "Громкость установлена на ${it.groupValues[1]} процентов."
         }
-        return if (message.any { it in 'А'..'я' || it == 'Ё' || it == 'ё' }) message
+        val letters = message.count { it.isLetter() }
+        val cyrillic = message.count { it in 'А'..'я' || it == 'Ё' || it == 'ё' }
+        return if (letters > 0 && cyrillic * 2 >= letters) message
         else if (success) "Готово." else "Не удалось выполнить команду."
     }
 }
