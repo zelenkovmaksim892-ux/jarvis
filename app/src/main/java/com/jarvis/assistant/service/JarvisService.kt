@@ -390,7 +390,8 @@ class JarvisService : Service() {
 
     /** What Jarvis says when woken and the user has not started speaking: the day's first greeting, otherwise "Yes?". */
     private fun wakePrompt(): String =
-        if (settings.speechLanguage == "ru") "Слушаю." else greeting.takeGreeting() ?: "Yes?"
+        if (settings.speechLanguage == "ru") greeting.takeGreeting("ru") ?: "Слушаю."
+        else greeting.takeGreeting() ?: "Yes?"
 
     /** English uses the downloaded offline model; Hindi and Russian use Android's language-specific recognizer. */
     private val useOfflineAsr get() = voice.canTranscribe && settings.speechLanguage == "en"
@@ -418,8 +419,9 @@ class JarvisService : Service() {
             }
             text.isNullOrBlank() -> {
                 state = State.IDLE
-                update("Didn't catch that")
-                say("Sorry, I didn't catch that.", interruptible = true) { island { it.hide() }; resumeListening() }
+                val missed = if (settings.speechLanguage == "ru") "Не расслышал. Повтори, пожалуйста." else "Sorry, I didn't catch that."
+                update(missed)
+                say(missed, interruptible = true) { island { it.hide() }; resumeListening() }
             }
             VoiceInput.isStopCommand(text) -> {
                 val said = cancelForeground()
@@ -931,7 +933,7 @@ class JarvisService : Service() {
             say(line, interruptible = true) { afterReply() }
             return
         }
-        if (settings.followUp && useOfflineAsr) listen(promptIfQuiet = false, followUp = true)
+        if (settings.followUp) listen(promptIfQuiet = false, followUp = true)
         else resumeListening()
     }
 
