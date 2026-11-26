@@ -29,6 +29,7 @@ import com.jarvis.assistant.databinding.ItemCheckBinding
 import com.jarvis.assistant.voice.Kokoro
 import com.jarvis.assistant.voice.ModelDownloader
 import com.jarvis.assistant.voice.SpeechModel
+import com.jarvis.assistant.voice.RussianVoice
 import com.jarvis.assistant.voice.WakeModel
 
 /** The things Jarvis needs before it can work, shared by onboarding, home and settings. */
@@ -59,8 +60,8 @@ object Setup {
         Item.PHONE_CONTROL -> isAccessibilityEnabled(context)
         Item.BACKGROUND -> context.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(context.packageName)
         Item.WAKE_WORD -> WakeModel.isInstalled(context)
-        Item.SPEECH -> SpeechModel.isInstalled(context)
-        Item.VOICE -> Kokoro.isInstalled(context)
+        Item.SPEECH -> Settings(context).speechLanguage != "en" || SpeechModel.isInstalled(context)
+        Item.VOICE -> if (Settings(context).speechLanguage == "ru") RussianVoice.isInstalled(context) else Kokoro.isInstalled(context)
     }
 
     fun remaining(context: Context) = Item.entries.filter { !isDone(context, it) }
@@ -149,7 +150,11 @@ object Downloads {
             val report: (Int) -> Unit = { p -> main.post { if (progress.containsKey(item)) { progress[item] = p; notifyListeners() } } }
             val error = try {
                 when (item) {
-                    Setup.Item.VOICE -> ModelDownloader.downloadKokoro(context, report)
+                    Setup.Item.VOICE -> if (com.jarvis.assistant.Settings(context).speechLanguage == "ru") {
+                        ModelDownloader.downloadRussianVoice(context, report)
+                    } else {
+                        ModelDownloader.downloadKokoro(context, report)
+                    }
                     Setup.Item.SPEECH -> ModelDownloader.downloadSpeech(context, report)
                     else -> ModelDownloader.downloadWakeWord(context, report)
                 }
@@ -159,7 +164,8 @@ object Downloads {
             }
             if (error == null && item == Setup.Item.VOICE) {
                 val settings = com.jarvis.assistant.Settings(context)
-                Kokoro.prerender(context, settings.kokoroSpeaker, settings.voiceSpeed)
+                if (settings.speechLanguage == "ru") RussianVoice.warmUp(context)
+                else Kokoro.prerender(context, settings.kokoroSpeaker, settings.voiceSpeed)
             }
             main.post {
                 progress.remove(item)
