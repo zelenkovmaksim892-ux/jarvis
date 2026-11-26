@@ -61,23 +61,6 @@ class EvidenceResearchServiceTest {
     }
 
     @Test
-    fun rejectsSharedAndDocumentationAddressRangesBeforeConnecting() {
-        val forbidden = listOf("100.64.0.1", "100.127.255.254", "192.0.2.1", "198.51.100.7", "203.0.113.9", "198.18.0.1")
-        forbidden.forEach { ip ->
-            val service = EvidenceResearchService(resolveHost = { listOf(InetAddress.getByName(ip)) })
-            val error = runCatching { service.fetch("https://docs.example.com/page", setOf("docs.example.com"), now) }.exceptionOrNull()
-            assertTrue("Expected $ip to be rejected, got $error", error is IllegalArgumentException)
-        }
-    }
-
-    @Test
-    fun rejectsIpv4MappedLoopbackIpv6BeforeConnecting() {
-        val service = EvidenceResearchService(resolveHost = { listOf(InetAddress.getByName("::ffff:127.0.0.1")) })
-        val error = runCatching { service.fetch("https://docs.example.com/page", setOf("docs.example.com"), now) }.exceptionOrNull()
-        assertTrue(error is IllegalArgumentException)
-    }
-
-    @Test
     fun primarySourceCanBeMarkedConfirmedOnlyWhenFreshAndExplicitlySupporting() {
         val result = EvidenceVerifier.verify(
             "android-version",

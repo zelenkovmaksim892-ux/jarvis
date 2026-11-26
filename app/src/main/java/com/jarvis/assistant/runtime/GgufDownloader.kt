@@ -172,8 +172,10 @@ class GgufDownloader(
         val local = u.host == "localhost" || u.host == "127.0.0.1" || u.host == "::1"
         val secureScheme = uri.scheme.equals("https", ignoreCase = true)
         val localHttp = uri.scheme.equals("http", ignoreCase = true) && local
-        if (uri.userInfo != null || uri.fragment != null || (!secureScheme && !localHttp)) {
-            throw IOException("Refusing a non-HTTPS or credential-bearing download address")
+        if (uri.userInfo != null || uri.fragment != null || (!secureScheme && !localHttp) ||
+            !isSafeResolvedDestination(u.host, localHttp)
+        ) {
+            throw IOException("Refusing a non-HTTPS, credential-bearing, or non-public download address")
         }
         val first = u.openConnection() as? HttpURLConnection ?: throw IOException("Unsupported download protocol")
         try {
