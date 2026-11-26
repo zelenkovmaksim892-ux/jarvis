@@ -179,7 +179,7 @@ class JarvisService : Service() {
                 stopSpeaking()
                 state = State.IDLE
                 island { it.hide() }
-                update("Cancelled")
+                update(if (settings.speechLanguage == "ru") "Отменено" else "Cancelled")
                 if (settings.switchedOn) {
                     resumeListening()
                 }
@@ -193,7 +193,7 @@ class JarvisService : Service() {
             ACTION_WAKE_SETTINGS -> {
                 voice.customWakePhrase = settings.customWakePhrase
                 if (state == State.IDLE && voice.hasWakeWord && settings.wakeWordEnabled) {
-                    update("Say \"${settings.wakePromptPhrase}\"")
+                    update(if (settings.speechLanguage == "ru") "Скажи «${settings.wakePromptPhrase}»" else "Say \"${settings.wakePromptPhrase}\"")
                 }
             }
             ACTION_LISTEN -> if (state == State.IDLE) onWakeWord()
@@ -221,9 +221,9 @@ class JarvisService : Service() {
     private fun onRuntimeStatus(s: EmbeddedRuntime.Status) {
         if (destroyed || state != State.IDLE) return
         when (s.phase) {
-            EmbeddedRuntime.Phase.DOWNLOADING -> update("Downloading the on-device model… ${if (s.percent >= 0) "${s.percent}%" else s.detail}")
+            EmbeddedRuntime.Phase.DOWNLOADING -> update(if (settings.speechLanguage == "ru") "Скачиваю модель на устройство… ${if (s.percent >= 0) "${s.percent}%" else s.detail}" else "Downloading the on-device model… ${if (s.percent >= 0) "${s.percent}%" else s.detail}")
             EmbeddedRuntime.Phase.FAILED, EmbeddedRuntime.Phase.NO_MODEL -> if (s.detail.isNotBlank()) update(s.detail)
-            EmbeddedRuntime.Phase.STOPPED -> if (runtime.hasModel()) update("On-device model ready. Say \"${settings.wakePromptPhrase}\"")
+            EmbeddedRuntime.Phase.STOPPED -> if (runtime.hasModel()) update(if (settings.speechLanguage == "ru") "Модель на устройстве готова. Скажи «${settings.wakePromptPhrase}»" else "On-device model ready. Say \"${settings.wakePromptPhrase}\"")
             else -> Unit
         }
     }
@@ -232,8 +232,8 @@ class JarvisService : Service() {
         if (destroyed || state != State.IDLE) return
         when (problem) {
             "ok" -> update("Say \"${settings.wakePromptPhrase}\"")
-            "blocked" -> update("Android is blocking the microphone. Open Jarvis once, then try again.")
-            else -> update("Microphone busy. Reconnecting…")
+            "blocked" -> update(if (settings.speechLanguage == "ru") "Android блокирует микрофон. Открой Jarvis и попробуй ещё раз." else "Android is blocking the microphone. Open Jarvis once, then try again.")
+            else -> update(if (settings.speechLanguage == "ru") "Микрофон занят. Переподключаюсь…" else "Microphone busy. Reconnecting…")
         }
     }
 
@@ -366,7 +366,7 @@ class JarvisService : Service() {
      */
     private fun listen(promptIfQuiet: Boolean, followUp: Boolean = false, interrupted: Boolean = false) {
         state = State.LISTENING_COMMAND
-        update("Listening…")
+        update(if (settings.speechLanguage == "ru") "Слушаю…" else "Listening…")
         speaker.warmUp() // load the voice now, so the reply has no delay
         island { it.listening(if (useOfflineAsr) ({ voice.partialText }) else null, { voice.level }) }
         if (useOfflineAsr) {
@@ -487,7 +487,7 @@ class JarvisService : Service() {
 
             try {
                 main.post {
-                    if (!isStale(id) && !destroyed) update("Thinking with ${profile.name}…")
+                    if (!isStale(id) && !destroyed) update(if (settings.speechLanguage == "ru") "Обрабатываю запрос через ${profile.name}…" else "Thinking with ${profile.name}…")
                 }
 
                 // Notes the user asked Jarvis to keep go in the message, not the system prompt, so the system prompt stays cacheable.
@@ -673,7 +673,7 @@ class JarvisService : Service() {
             fg != null -> {
                 state = State.WORKING
                 island { it.working(fg.text) }
-                update("Working on: ${fg.text}")
+                update(if (settings.speechLanguage == "ru") "Выполняю: ${fg.text}" else "Working on: ${fg.text}")
             }
             else -> {
                 state = State.IDLE
@@ -1046,7 +1046,7 @@ class JarvisService : Service() {
                     latch.countDown()
                     return@post
                 }
-                update("Asking: $question")
+                update(if (settings.speechLanguage == "ru") "Уточняю: $question" else "Asking: $question")
                 say(question) {
                     island { it.listening(if (useOfflineAsr) ({ voice.partialText }) else null, { voice.level }) }
                     val got: (String?) -> Unit = { text ->
