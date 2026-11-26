@@ -295,6 +295,7 @@ class TaskIsland(private val service: AccessibilityService) {
         animateTo(1f, 520, SpringInterpolator(0.68f))
         main.removeCallbacks(autoCollapse)
         main.postDelayed(autoCollapse, visibleDurationMs)
+        scheduleDismiss() // restart the two-minute lifetime from the user's expand tap
     }
 
     fun collapse() {
