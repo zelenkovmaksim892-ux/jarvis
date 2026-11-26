@@ -9,7 +9,7 @@ import androidx.core.os.LocaleListCompat
  */
 object LocaleDefaults {
     fun ensureRussian() {
-        if (AppCompatDelegate.getApplicationLocales().isEmpty) {
+        if (AppCompatDelegate.getApplicationLocales().toLanguageTags().isBlank()) {
             AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("ru"))
         }
     }
