@@ -24,6 +24,7 @@ import android.widget.Toast
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import com.jarvis.assistant.R
+import com.jarvis.assistant.Settings
 import com.jarvis.assistant.accessibility.JarvisAccessibilityService
 import com.jarvis.assistant.databinding.ItemCheckBinding
 import com.jarvis.assistant.voice.Kokoro
