@@ -511,10 +511,10 @@ class FastActionExecutor(
 
     private fun setLanguage(lang: String): Result {
         settings.speechLanguage = lang
-        return if (lang == "hi") {
-            Result(true, true, "Okay. I'll listen for Hindi and Hinglish with Google speech recognition, and answer in English.")
-        } else {
-            Result(true, true, "Okay. English with offline recognition.")
+        return when (lang) {
+            "ru" -> Result(true, true, "Хорошо. Буду распознавать русскую речь и отвечать по-русски.")
+            "hi" -> Result(true, true, "Okay. I'll listen for Hindi and Hinglish with Google speech recognition, and answer in English.")
+            else -> Result(true, true, "Okay. English with offline recognition.")
         }
     }
 
