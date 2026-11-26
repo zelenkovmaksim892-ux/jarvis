@@ -73,6 +73,7 @@
     <string name="speaking_ellipsis">Speaking…</string>
     <string name="kokoro_slow">On this phone Kokoro takes %1$.1f seconds to make each second of speech, so it pauses between phrases. A cloud voice or the phone\'s own voice won\'t pause.</string>
     <string name="played_backup">%1$s\nPlayed the backup voice instead.</string>
+    <string name="ru_voice_problem">Russian voice problem: %1$s</string>
     <string name="kokoro_problem">Kokoro problem: %1$s</string>
     <string name="openai_key_hint">Get a key at platform.openai.com → API keys. If you\'ve added an OpenAI model, its key is used automatically.</string>
     <string name="openai_voice_hint">alloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer or verse</string>
