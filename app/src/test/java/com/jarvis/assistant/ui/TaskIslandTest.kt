@@ -64,8 +64,10 @@ class TaskIslandTest {
 
         island.finish(true, "Sent your wife 'I love you' on WhatsApp")
         snapshot(pill, "island_done.png")
-        idle(5000)
-        assertTrue("hidden after showing the result", views(service).isEmpty())
+        idle(119_999)
+        assertTrue("the result remains visible for two minutes", views(service).isNotEmpty())
+        idle(1)
+        assertTrue("hidden after two minutes", views(service).isEmpty())
     }
 
     @Test
