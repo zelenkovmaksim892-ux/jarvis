@@ -36,6 +36,14 @@ internal object RussianMessages {
         "Okay. I'll listen for Hindi and Hinglish with Google speech recognition, and answer in English." to "Хорошо. Буду распознавать хинди через службу Google и отвечать на английском.",
         "Something went wrong." to "Произошла ошибка. Команду выполнить не удалось.",
         "Action denied." to "Действие запрещено.",
+        "Okay, I won't open it." to "Хорошо, не буду открывать.",
+        "I am not sure which app you meant. Please name it exactly." to "Не понял, какое приложение ты имеешь в виду. Назови его точное название.",
+        "I'm not sure which one you meant, so I haven't called anyone." to "Не понял, кого именно ты имеешь в виду, поэтому никому не звонил.",
+        "Okay, I won't call." to "Хорошо, не буду звонить.",
+        "I haven't saved anything yet." to "Я пока ничего не сохранил.",
+        "I don't have anything saved about that." to "У меня нет сохранённых сведений об этом.",
+        "Okay, I'll keep that in mind." to "Хорошо, учту.",
+        "Okay, I'll remember that." to "Хорошо, запомнил.",
         "I couldn't save that." to "Не удалось сохранить.",
     )
 
