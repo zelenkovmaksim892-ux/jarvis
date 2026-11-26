@@ -16,11 +16,10 @@ class ModelDownloaderTest {
     @get:Rule val tmp = TemporaryFolder()
 
     private fun tarBz2(vararg entries: Pair<String, String?>): File {
-        val f = tmp.newFile("model.tar.bz2")
+        val f = File.createTempFile("model-", ".tar.bz2", tmp.root)
         TarArchiveOutputStream(BZip2CompressorOutputStream(f.outputStream())).use { tar ->
-            // Preserve leading slashes so the security test can create a genuinely
-            // absolute-path TAR entry. The production extractor must reject it.
-            tar.setPreserveLeadingSlashes(true)
+            // The second TarArchiveEntry constructor argument preserves absolute paths
+            // so the security test can create a genuinely absolute-path TAR entry.
             for ((name, content) in entries) {
                 val bytes = content?.toByteArray() ?: ByteArray(0)
                 tar.putArchiveEntry(TarArchiveEntry(name, true).apply { size = bytes.size.toLong() })
