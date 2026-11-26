@@ -360,7 +360,7 @@ class Settings(context: Context) {
 
     /** "en" uses the bundled offline recognizer; "hi" and "ru" use Android speech recognition. */
     var speechLanguage: String
-        get() = prefs.getString("speech_lang", "en") ?: "en"
+        get() = prefs.getString("speech_lang", "ru") ?: "ru"
         set(v) = prefs.edit().putString("speech_lang", v.takeIf { it in setOf("en", "hi", "ru") } ?: "en").apply()
 
     /** Ask before placing calls or sending messages. */
