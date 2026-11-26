@@ -3,7 +3,7 @@ package com.jarvis.assistant.router
 import com.jarvis.assistant.ai.AiMode
 
 /**
- * The fast path: recognises simple phone commands in English, Hinglish and Devanagari Hindi so they run in
+ * The fast path: recognises simple phone commands in English, Hinglish, Hindi and Russian so they run in
  * milliseconds without a language model. Anything it does not recognise returns null and goes to the model as before.
  */
 object FastCommandRouter {
