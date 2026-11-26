@@ -223,6 +223,7 @@ class SettingsFragment : Fragment() {
                 it.voiceError.text = when {
                     factor != null -> it.root.context.getString(R.string.kokoro_slow, factor)
                     cloud != null -> it.root.context.getString(R.string.played_backup, error)
+                    settings.speechLanguage == "ru" -> it.root.context.getString(R.string.ru_voice_problem, error)
                     else -> it.root.context.getString(R.string.kokoro_problem, error)
                 }
             }
