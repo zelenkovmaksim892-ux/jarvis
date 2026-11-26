@@ -25,7 +25,7 @@ class Speaker(context: Context) {
     /** Whether the current speech can report its loudness (everything except Android's voice). */
     @Volatile private var measurable = false
 
-    val usingKokoro get() = settings.voiceEngine == "kokoro" && kokoroReady
+    val usingKokoro get() = settings.voiceEngine == "kokoro" && settings.speechLanguage != "ru" && kokoroReady
 
     private val kokoroReady get() = Kokoro.isInstalled(app) && !Kokoro.failed
 
@@ -51,7 +51,7 @@ class Speaker(context: Context) {
 
     private fun speakLocally(text: String, onDone: () -> Unit) {
         // Kokoro when chosen, or as the fallback for a cloud voice; otherwise Android's voice.
-        if (kokoroReady && settings.voiceEngine != "system") {
+        if (settings.speechLanguage != "ru" && kokoroReady && settings.voiceEngine != "system") {
             measurable = true
             Kokoro.speak(app, text, settings.kokoroSpeaker, settings.voiceSpeed, onDone)
         } else {
@@ -66,7 +66,7 @@ class Speaker(context: Context) {
      * meanwhile. Only Kokoro uses this; the other voices start quickly enough without it.
      */
     fun prepare(text: String) {
-        if (cloudConfig() == null && kokoroReady && settings.voiceEngine != "system") {
+        if (settings.speechLanguage != "ru" && cloudConfig() == null && kokoroReady && settings.voiceEngine != "system") {
             Kokoro.prepare(app, text, settings.kokoroSpeaker, settings.voiceSpeed)
         }
     }

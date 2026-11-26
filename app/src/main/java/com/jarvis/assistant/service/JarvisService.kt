@@ -389,12 +389,17 @@ class JarvisService : Service() {
     }
 
     /** What Jarvis says when woken and the user has not started speaking: the day's first greeting, otherwise "Yes?". */
-    private fun wakePrompt(): String = greeting.takeGreeting() ?: "Yes?"
+    private fun wakePrompt(): String =
+        if (settings.speechLanguage == "ru") "Слушаю." else greeting.takeGreeting() ?: "Yes?"
 
-    /** Offline English recognition, unless the user chose Hindi/Hinglish (then Google's recognizer is used). */
+    /** English uses the downloaded offline model; Hindi and Russian use Android's language-specific recognizer. */
     private val useOfflineAsr get() = voice.canTranscribe && settings.speechLanguage == "en"
 
-    private fun googleLanguage(): String? = if (settings.speechLanguage == "hi") "hi-IN" else null
+    private fun googleLanguage(): String? = when (settings.speechLanguage) {
+        "hi" -> "hi-IN"
+        "ru" -> "ru-RU"
+        else -> null
+    }
 
     private fun onHeard(text: String?, followUp: Boolean = false, interrupted: Boolean = false) {
         if (state != State.LISTENING_COMMAND) return
@@ -435,7 +440,8 @@ class JarvisService : Service() {
         val t = task.lowercase()
         val patterns = listOf(
             Regex("""\b(open|launch|close|exit|switch to|go to|tap|click|press|scroll|swipe|type|enter|send|text|call|dial|hang up|answer|reject|play|pause|skip|next|previous|turn on|turn off|enable|disable|increase|decrease|raise|lower|volume|brightness|screenshot|lock|unlock|navigate|share|copy|paste|set alarm|set a reminder|set reminder|set timer|change wallpaper)\b"""),
-            Regex("""(kholo|khol do|band karo|bhejo|bhej do|call karo|phone karo|lagao|laga do|bajao|chalao|chala do|on karo|off karo|badha do|kam karo|ghata do|screenshot lo|photo lo|record karo|mute karo|unmute karo|silent kar do|alarm laga|reminder laga)""")
+            Regex("""(kholo|khol do|band karo|bhejo|bhej do|call karo|phone karo|lagao|laga do|bajao|chalao|chala do|on karo|off karo|badha do|kam karo|ghata do|screenshot lo|photo lo|record karo|mute karo|unmute karo|silent kar do|alarm laga|reminder laga)"""),
+            Regex("""(открой|запусти|закрой|переключи|нажми|прокрути|пролистай|введи|напиши|отправь|позвони|набери|сбрось|ответь|отклони|включи|выключи|увеличь|уменьши|громкость|яркость|скриншот|снимок экрана|заблокируй|разблокируй|поделись|скопируй|вставь|поставь будильник|установи таймер|напомни|поставь напоминание|сменить обои|сделай фото|включи фонарик|выключи фонарик)""")
         )
         return patterns.any { it.containsMatchIn(t) }
     }
@@ -1127,7 +1133,7 @@ class JarvisService : Service() {
         private const val TRIM_RUNNING_CRITICAL = 15 // ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL
 
         private const val CHAT_PROMPT = "You are Jarvis, a helpful Android phone assistant. " +
-            "Reply naturally and concisely in the user's language, including Hindi or Hinglish. " +
+            "Reply naturally and concisely in the user's language, including Russian, Hindi or Hinglish. " +
             "You are in conversation mode and cannot operate the phone in this mode. " +
             "Never claim you performed a phone action."
 

@@ -6,6 +6,7 @@ import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import java.util.UUID
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
 /** Android's built-in text-to-speech. Completion callbacks run on the main thread. */
@@ -44,6 +45,9 @@ class SystemVoice(context: Context) : VoiceEngine {
         main.post {
             if (!initDone) { queued += text to onDone; return@post }
             if (!ready) { onDone(); return@post }
+            // Use an installed Russian TTS voice for Russian replies, even if the phone UI is in another language.
+            val hasCyrillic = text.any { it.code in 0x0400..0x04FF }
+            tts.setLanguage(if (hasCyrillic) Locale.forLanguageTag("ru-RU") else Locale.getDefault())
             val id = UUID.randomUUID().toString()
             pending[id] = onDone
             tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, id)
