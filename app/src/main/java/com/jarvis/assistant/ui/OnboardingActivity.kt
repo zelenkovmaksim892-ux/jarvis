@@ -36,6 +36,7 @@ class OnboardingActivity : AppCompatActivity() {
     private val attempted = mutableSetOf<Step>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        LocaleDefaults.ensureRussian()
         super.onCreate(savedInstanceState)
         ui = ActivityOnboardingBinding.inflate(layoutInflater)
         setContentView(ui.root)
