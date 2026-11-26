@@ -393,8 +393,8 @@ class JarvisService : Service() {
         if (settings.speechLanguage == "ru") greeting.takeGreeting("ru") ?: "Слушаю."
         else greeting.takeGreeting() ?: "Yes?"
 
-    /** English uses the downloaded offline model; Hindi and Russian use Android's language-specific recognizer. */
-    private val useOfflineAsr get() = voice.canTranscribe && settings.speechLanguage == "en"
+    /** English and Russian use downloaded offline models; Android recognition is the fallback. */
+    private val useOfflineAsr get() = voice.canTranscribe
 
     private fun googleLanguage(): String? = when (settings.speechLanguage) {
         "hi" -> "hi-IN"
@@ -956,7 +956,7 @@ class JarvisService : Service() {
     private fun resumeListening() {
         if (destroyed || !settings.switchedOn || state != State.IDLE) return
         voice.echoCancellation = settings.interruptByTalking
-        voice.load { error ->
+        voice.load(settings.speechLanguage) { error ->
             if (destroyed || state != State.IDLE) return@load
             voice.wakeEnabled = settings.wakeWordEnabled
             when {
