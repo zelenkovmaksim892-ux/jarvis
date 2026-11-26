@@ -52,7 +52,7 @@ object Lexicon {
         "остановить" to "stop", "продолжи" to "resume", "следующий" to "next", "следующая" to "next",
         "предыдущий" to "previous", "предыдущая" to "previous", "трек" to "song", "таймер" to "timer",
         "будильник" to "alarm", "поставь" to "set", "установи" to "set", "заведи" to "set",
-        "на" to "for", "минут" to "minutes", "минута" to "minute", "минуту" to "minute",
+        "на" to "to", "минут" to "minutes", "минута" to "minute", "минуту" to "minute",
         "секунд" to "seconds", "секунда" to "second", "секунды" to "seconds", "час" to "hour",
         "часа" to "hours", "часов" to "hours", "утра" to "morning", "вечера" to "evening",
         "позвони" to "call", "набери" to "dial", "найди" to "search", "поищи" to "search",
@@ -61,7 +61,7 @@ object Lexicon {
         "русском" to "russian", "русски" to "russian", "язык" to "language", "режим" to "mode",
         "офлайн" to "offline", "оффлайн" to "offline", "онлайн" to "online", "автоматический" to "automatic",
         "время" to "time", "сколько" to "what", "сейчас" to "now", "дата" to "date",
-        "заряд" to "battery", "батарея" to "battery", "процент" to "percent",
+        "заряд" to "battery", "батарея" to "battery", "процент" to "percent", "камера" to "camera", "камеру" to "camera",
         // device words
         "आवाज़" to "awaaz", "आवाज" to "awaaz", "वॉल्यूम" to "volume", "वोल्यूम" to "volume", "म्यूट" to "mute", "अनम्यूट" to "unmute",
         "टॉर्च" to "torch", "टोर्च" to "torch", "फ्लैशलाइट" to "flashlight",
