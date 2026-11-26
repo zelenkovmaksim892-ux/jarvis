@@ -32,6 +32,10 @@ interface AgentHost {
 
 data class AgentResult(val success: Boolean, val summary: String)
 
+/** A prose-only model reply is not evidence that a phone-control task was completed. */
+internal fun unconfirmedAgentResult(text: String): AgentResult =
+    AgentResult(false, text.ifBlank { "The model did not confirm that the requested phone task was completed." })
+
 /** Extra confirmation for actions whose coordinates or submission semantics cannot be inferred safely. */
 internal fun requiresSecondConfirmation(action: String, args: JSONObject, details: String): Boolean {
     if (action == "tap_point" || action == "long_press") return true
@@ -161,7 +165,7 @@ class PhoneAgent(
 
             if (turn.toolCalls.isEmpty()) {
                 // Models occasionally answer in prose instead of calling finish.
-                if (nudges++ >= 1) return Outcome.Done(AgentResult(true, turn.text.ifBlank { "Done." }))
+                if (nudges++ >= 1) return Outcome.Done(unconfirmedAgentResult(turn.text))
                 userText = "Continue the task using the tools. When the task is complete, call finish."
                 outputs = emptyList()
                 continue
