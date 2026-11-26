@@ -68,6 +68,13 @@ jobs:
           path: app/src/main/jniLibs/*/libllama_server.so
           key: ${{ steps.llama-cache.outputs.cache-primary-key }}
 
+      - name: Restore stable debug signing key
+        if: github.event_name != 'pull_request'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.android/debug.keystore
+          key: jarvis-debug-keystore-v1-${{ runner.os }}
+
       - name: Build debug APK
         run: |
           ./gradlew assembleDebug
