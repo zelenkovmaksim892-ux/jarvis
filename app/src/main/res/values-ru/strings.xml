@@ -73,6 +73,7 @@
     <string name="speaking_ellipsis">Говорю…</string>
     <string name="kokoro_slow">На этом телефоне Kokoro тратит %1$.1f секунды на каждую секунду речи, поэтому между фразами возникают паузы. Облачный или системный голос телефона не будет делать таких пауз.</string>
     <string name="played_backup">%1$s\nВместо него использован резервный голос.</string>
+    <string name="ru_voice_problem">Проблема с русским голосом: %1$s</string>
     <string name="kokoro_problem">Проблема с Kokoro: %1$s</string>
     <string name="openai_key_hint">Получите ключ на platform.openai.com → API keys. Если вы уже добавили модель OpenAI, её ключ будет использоваться автоматически.</string>
     <string name="openai_voice_hint">alloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer или verse</string>
