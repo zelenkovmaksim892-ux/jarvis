@@ -22,6 +22,7 @@ class Speaker(context: Context) {
     private val cloud by lazy { CloudVoice() }
     private var usedSystem = false
     private var usedCloud = false
+    private var usedRussian = false
     /** Whether the current speech can report its loudness (everything except Android's voice). */
     @Volatile private var measurable = false
 
@@ -36,7 +37,12 @@ class Speaker(context: Context) {
 
     /** The last problem with the chosen voice, for Settings. */
     val lastError: String?
-        get() = if (cloudConfig() != null || settings.voiceEngine in CLOUD_VOICES.map { it.id }) cloud.lastError else Kokoro.lastError
+        get() = when {
+            settings.speechLanguage == "ru" -> RussianVoice.lastError
+                ?: if (!RussianVoice.isInstalled(app)) "Русская голосовая модель не скачана" else null
+            cloudConfig() != null || settings.voiceEngine in CLOUD_VOICES.map { it.id } -> cloud.lastError
+            else -> Kokoro.lastError
+        }
 
     fun speak(text: String, onDone: () -> Unit = {}) {
         val config = cloudConfig()
@@ -50,8 +56,16 @@ class Speaker(context: Context) {
     }
 
     private fun speakLocally(text: String, onDone: () -> Unit) {
-        // Kokoro when chosen, or as the fallback for a cloud voice; otherwise Android's voice.
-        if (settings.speechLanguage != "ru" && kokoroReady && settings.voiceEngine != "system") {
+        if (settings.speechLanguage == "ru" && RussianVoice.isInstalled(app)) {
+            usedRussian = true
+            measurable = true
+            RussianVoice.speak(app, text, settings.voiceSpeed, onDone) {
+                // A failed native voice must not leave the user with silence.
+                usedSystem = true
+                measurable = false
+                system.speak(text, onDone)
+            }
+        } else if (settings.speechLanguage != "ru" && kokoroReady && settings.voiceEngine != "system") {
             measurable = true
             Kokoro.speak(app, text, settings.kokoroSpeaker, settings.voiceSpeed, onDone)
         } else {
@@ -72,10 +86,14 @@ class Speaker(context: Context) {
     }
 
     /** Load the voice now so the next reply starts without delay. */
-    fun warmUp() { if (usingKokoro) Kokoro.warmUp(app) }
+    fun warmUp() {
+        if (settings.speechLanguage == "ru") RussianVoice.warmUp(app)
+        else if (usingKokoro) Kokoro.warmUp(app)
+    }
 
     fun stop() {
-        Kokoro.stop() // stops the shared speaker output, whichever voice is using it
+        Kokoro.stop()
+        if (usedRussian) RussianVoice.stop()
         if (usedCloud) cloud.stop()
         if (usedSystem) system.stop()
     }
@@ -86,5 +104,6 @@ class Speaker(context: Context) {
     fun shutdown() {
         stop()
         if (usedSystem) system.shutdown()
+        if (usedRussian) RussianVoice.unload()
     }
 }
