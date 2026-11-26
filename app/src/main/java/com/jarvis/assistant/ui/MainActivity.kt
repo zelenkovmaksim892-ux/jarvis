@@ -15,6 +15,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var ui: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        LocaleDefaults.ensureRussian()
         super.onCreate(savedInstanceState)
         val settings = Settings(this)
         if (!settings.onboarded) {
