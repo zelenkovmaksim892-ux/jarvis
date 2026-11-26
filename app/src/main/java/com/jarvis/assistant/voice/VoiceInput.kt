@@ -207,6 +207,7 @@ class VoiceInput(private val context: Context, private val onWake: () -> Unit) {
                 }
             }
             if (loadedLanguage != language) {
+                if (running) stop()
                 recognizer?.release()
                 recognizer = null
                 loadedLanguage = language
@@ -255,7 +256,7 @@ class VoiceInput(private val context: Context, private val onWake: () -> Unit) {
                 // Turned off while loading: free what was just loaded and stay quiet.
                 spotter?.release(); spotter = null
                 recognizer?.release(); recognizer = null
-        loadedLanguage = ""
+                loadedLanguage = ""
                 return@Thread
             }
             main.post { if (!released) ready(errors.firstOrNull()) }
@@ -284,6 +285,7 @@ class VoiceInput(private val context: Context, private val onWake: () -> Unit) {
         cancelCommand()
         spotter?.release(); spotter = null
         recognizer?.release(); recognizer = null
+        loadedLanguage = ""
     }
 
     /**
