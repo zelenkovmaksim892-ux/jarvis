@@ -176,10 +176,11 @@ class TaskIsland(private val service: AccessibilityService) {
     private fun render() {
         val b = ui ?: create() ?: return
         val done = mode == Mode.DONE || mode == Mode.FAILED
+        val showResult = done && !speaking
 
-        b.islandOrb.visibility = if (done) View.GONE else View.VISIBLE
-        b.islandResult.visibility = if (done) View.VISIBLE else View.GONE
-        if (done) {
+        b.islandOrb.visibility = if (showResult) View.GONE else View.VISIBLE
+        b.islandResult.visibility = if (showResult) View.VISIBLE else View.GONE
+        if (showResult) {
             b.islandResult.setImageResource(if (mode == Mode.DONE) R.drawable.ic_check else R.drawable.ic_stop)
             b.islandResult.imageTintList = ColorStateList.valueOf(service.color(if (mode == Mode.DONE) R.color.ok else R.color.warn))
         }
@@ -189,7 +190,7 @@ class TaskIsland(private val service: AccessibilityService) {
             else -> ArcReactorView.Mode.WORKING
         }
         b.islandOrb.mode = orbMode
-        b.expOrb.mode = if (done) ArcReactorView.Mode.IDLE else orbMode
+        b.expOrb.mode = if (showResult) ArcReactorView.Mode.IDLE else orbMode
 
         val heard = partial?.invoke().orEmpty()
         b.islandText.text = when {
