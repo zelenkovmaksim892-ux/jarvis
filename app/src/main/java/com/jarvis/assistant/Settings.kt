@@ -72,6 +72,13 @@ class Settings(context: Context) {
     private val secretStore = SecretStore()
 
     init {
+        // This is a Russian-first build. Upgrade old installs that inherited the previous English default.
+        if (!prefs.getBoolean("russian_speech_default_migrated", false)) {
+            if (!prefs.contains("speech_lang") || prefs.getString("speech_lang", null) == "en") {
+                prefs.edit().putString("speech_lang", "ru").apply()
+            }
+            prefs.edit().putBoolean("russian_speech_default_migrated", true).apply()
+        }
         // Migrate every legacy plaintext credential as soon as Settings is opened, not only when a screen uses it.
         migrateLegacyProvider()
         CLOUD_VOICES.forEach { voice ->
@@ -358,10 +365,10 @@ class Settings(context: Context) {
         get() = AiMode.parse(prefs.getString("ai_mode", null))
         set(v) = prefs.edit().putString("ai_mode", v.name).apply()
 
-    /** "en" = offline English recognizer; "hi" = Google recognizer in Hindi (also understands Hinglish). */
+    /** "en" uses the bundled offline recognizer; "hi" and "ru" use Android speech recognition. */
     var speechLanguage: String
-        get() = prefs.getString("speech_lang", "en") ?: "en"
-        set(v) = prefs.edit().putString("speech_lang", if (v == "hi") "hi" else "en").apply()
+        get() = prefs.getString("speech_lang", "ru") ?: "ru"
+        set(v) = prefs.edit().putString("speech_lang", v.takeIf { it in setOf("en", "hi", "ru") } ?: "en").apply()
 
     /** Ask before placing calls or sending messages. */
     var confirmSensitive: Boolean

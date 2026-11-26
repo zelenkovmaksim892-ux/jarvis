@@ -43,6 +43,7 @@ object AssistantSection {
         val langHint = view.findViewById<TextView>(R.id.speechLangHint)
         langChips.addChoice(context.getString(R.string.lang_en), "en")
         langChips.addChoice(context.getString(R.string.lang_hi), "hi")
+        langChips.addChoice(context.getString(R.string.lang_ru), "ru")
         langChips.select(settings.speechLanguage)
         langHint.setText(langText(settings.speechLanguage))
         langChips.setOnCheckedStateChangeListener { _, _ ->
@@ -151,6 +152,9 @@ object AssistantSection {
         AiMode.OFFLINE -> R.string.mode_offline_hint
     }
 
-    private fun langText(lang: String) =
-        if (lang == "hi") R.string.lang_hi_hint else R.string.lang_en_hint
+    private fun langText(lang: String) = when (lang) {
+        "hi" -> R.string.lang_hi_hint
+        "ru" -> R.string.lang_ru_hint
+        else -> R.string.lang_en_hint
+    }
 }

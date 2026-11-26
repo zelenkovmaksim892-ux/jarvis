@@ -16,26 +16,38 @@ object Persona {
     }
 
     /** First wake of the day, when nothing has been asked yet. */
-    fun greeting(hour: Int): String = "Hello sir, good ${daypart(hour).word}. What's the task for today?"
+    fun greeting(hour: Int, language: String = "en"): String =
+        if (language == "ru") when (daypart(hour)) {
+            Daypart.MORNING -> "Доброе утро. Чем займёмся сегодня?"
+            Daypart.AFTERNOON -> "Добрый день. Что нужно сделать?"
+            Daypart.EVENING -> "Добрый вечер. Чем могу помочь?"
+        } else "Hello sir, good ${daypart(hour).word}. What's the task for today?"
 
     /** First wake of the day, when a command came with it: the greeting is folded into the reply. */
-    fun greetingPrefix(hour: Int): String = "Good ${daypart(hour).word}, sir."
+    fun greetingPrefix(hour: Int, language: String = "en"): String =
+        if (language == "ru") when (daypart(hour)) {
+            Daypart.MORNING -> "Доброе утро."
+            Daypart.AFTERNOON -> "Добрый день."
+            Daypart.EVENING -> "Добрый вечер."
+        } else "Good ${daypart(hour).word}, sir."
 
     /** All three greetings, so the voice can pre-render them and speak them with no delay. */
     val ALL_GREETINGS: List<String> = Daypart.entries.map { "Hello sir, good ${it.word}. What's the task for today?" }
 
     /** Short acknowledgements for slow requests. Never used for instant commands. */
     val ACKNOWLEDGEMENTS = listOf("One moment.", "Let me check.", "Working on it.", "Give me a second.")
+    val RUSSIAN_ACKNOWLEDGEMENTS = listOf("Секунду.", "Сейчас проверю.", "Уже занимаюсь.", "Дай мне немного времени.")
 
     /** Picks an acknowledgement, never the same one twice in a row. */
     class AckPicker(private val random: java.util.Random = java.util.Random()) {
         private var last = -1
 
-        fun next(): String {
-            var i = random.nextInt(ACKNOWLEDGEMENTS.size)
-            if (i == last) i = (i + 1) % ACKNOWLEDGEMENTS.size
+        fun next(language: String = "en"): String {
+            val choices = if (language == "ru") RUSSIAN_ACKNOWLEDGEMENTS else ACKNOWLEDGEMENTS
+            var i = random.nextInt(choices.size)
+            if (i == last) i = (i + 1) % choices.size
             last = i
-            return ACKNOWLEDGEMENTS[i]
+            return choices[i]
         }
     }
 }
@@ -65,8 +77,8 @@ class DailyGreeting(
     }
 
     /** The greeting to speak now, or null when today's greeting was already given. Marks it as given. */
-    fun takeGreeting(): String? = if (isDue()) Persona.greeting(hour()).also { markGreeted() } else null
+    fun takeGreeting(language: String = "en"): String? = if (isDue()) Persona.greeting(hour(), language).also { markGreeted() } else null
 
     /** Same, for a reply that already carries the user's command. */
-    fun takePrefix(): String? = if (isDue()) Persona.greetingPrefix(hour()).also { markGreeted() } else null
+    fun takePrefix(language: String = "en"): String? = if (isDue()) Persona.greetingPrefix(hour(), language).also { markGreeted() } else null
 }

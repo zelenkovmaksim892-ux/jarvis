@@ -125,7 +125,7 @@ class SettingsFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        Kokoro.warmUp(requireContext()) // so Preview responds quickly
+        if (settings.speechLanguage != "ru") Kokoro.warmUp(requireContext()) // so Preview responds quickly
         Downloads.listen(onDownload)
         refreshers.forEach { it() }
     }
@@ -134,7 +134,7 @@ class SettingsFragment : Fragment() {
         super.onPause()
         Downloads.unlisten(onDownload)
         if (_ui == null) return
-        if (settings.voiceEngine == "kokoro") Kokoro.prerender(requireContext(), settings.kokoroSpeaker, settings.voiceSpeed)
+        if (settings.speechLanguage != "ru" && settings.voiceEngine == "kokoro") Kokoro.prerender(requireContext(), settings.kokoroSpeaker, settings.voiceSpeed)
         saveCloudFields()
         settings.personalNotes = ui.notes.text.toString()
         settings.appTips = ui.appTips.text.toString()
@@ -153,9 +153,13 @@ class SettingsFragment : Fragment() {
     private var shownCloud: String? = null
 
     private fun showVoiceSection() {
+        val russian = settings.speechLanguage == "ru"
         val engine = settings.voiceEngine
-        ui.kokoroSection.visibility = if (engine == "kokoro") View.VISIBLE else View.GONE
-        val preset = CLOUD_VOICES.firstOrNull { it.id == engine }
+        ui.engineChips.visibility = if (russian) View.GONE else View.VISIBLE
+        ui.kokoroSection.visibility = if (russian || engine == "kokoro") View.VISIBLE else View.GONE
+        ui.voiceChips.visibility = if (russian) View.GONE else View.VISIBLE
+        ui.kokoroTip.visibility = if (russian) View.GONE else View.VISIBLE
+        val preset = if (russian) null else CLOUD_VOICES.firstOrNull { it.id == engine }
         ui.cloudSection.visibility = if (preset != null) View.VISIBLE else View.GONE
         ui.voiceError.visibility = View.GONE
         shownCloud = preset?.id
@@ -188,33 +192,40 @@ class SettingsFragment : Fragment() {
 
     private fun previewVoice() {
         saveCloudFields()
-        val cloud = CLOUD_VOICES.firstOrNull { it.id == settings.voiceEngine }
+        val cloud = if (settings.speechLanguage == "ru") null else CLOUD_VOICES.firstOrNull { it.id == settings.voiceEngine }
         if (cloud != null && cloud.needsKey && settings.cloudVoice(cloud.id).apiKey.isBlank()) {
             Toast.makeText(requireContext(), getString(R.string.add_key_first, cloud.name), Toast.LENGTH_SHORT).show()
             return
         }
-        if (settings.voiceEngine == "kokoro" && !Kokoro.isInstalled(requireContext())) {
+        if (settings.speechLanguage != "ru" && settings.voiceEngine == "kokoro" && !Kokoro.isInstalled(requireContext())) {
             Toast.makeText(requireContext(), getString(R.string.kokoro_not_downloaded), Toast.LENGTH_SHORT).show()
         }
         val voice = when {
-            cloud != null -> "${cloud.name}"
+            settings.speechLanguage == "ru" -> "Ruslan"
+            cloud != null -> cloud.name
             else -> KOKORO_VOICES.firstOrNull { it.sid == settings.kokoroSpeaker }?.name ?: "Jarvis"
         }
         ui.previewButton.isEnabled = false
         ui.previewButton.text = getString(R.string.speaking_ellipsis)
         val speaker = preview ?: Speaker(requireContext()).also { preview = it }
-        speaker.speak("Good evening. This is the $voice voice. All systems are online and ready when you are.") {
+        val sample = if (settings.speechLanguage == "ru") {
+            "Добрый вечер. Я Джарвис. Русский голосовой модуль работает. Готов к вашим командам."
+        } else {
+            "Good evening. This is the $voice voice. All systems are online and ready when you are."
+        }
+        speaker.speak(sample) {
             _ui?.let {
                 it.previewButton.isEnabled = true
                 it.previewButton.setText(R.string.preview_voice)
                 // If the voice had a problem, say so here rather than failing silently.
                 val error = speaker.lastError
                 // A voice that can't keep up with its own speech has to pause; say why.
-                val factor = Kokoro.realTimeFactor?.takeIf { cloud == null && error == null && settings.voiceEngine == "kokoro" && it > 1.1f }
+                val factor = Kokoro.realTimeFactor?.takeIf { cloud == null && error == null && settings.speechLanguage != "ru" && settings.voiceEngine == "kokoro" && it > 1.1f }
                 it.voiceError.visibility = if (error != null || factor != null) View.VISIBLE else View.GONE
                 it.voiceError.text = when {
                     factor != null -> it.root.context.getString(R.string.kokoro_slow, factor)
                     cloud != null -> it.root.context.getString(R.string.played_backup, error)
+                    settings.speechLanguage == "ru" -> it.root.context.getString(R.string.ru_voice_problem, error)
                     else -> it.root.context.getString(R.string.kokoro_problem, error)
                 }
             }

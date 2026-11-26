@@ -50,6 +50,16 @@ object SpeechModel {
     fun isInstalled(context: Context) = KEEP_FILES.all { File(dir(context), it).exists() }
 }
 
+/** Offline Russian streaming recognition (small Vosk Zipformer, int8, about 24 MB). */
+object RussianSpeechModel {
+    const val URL = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-small-ru-vosk-int8-2025-08-16.tar.bz2"
+    const val ARCHIVE_SIZE = 24_110_855L
+    const val ARCHIVE_SHA256 = "6ba68a01ff3c5445aaf2d61e9b97b026f1149dcc9049d11af3f44f55176341d8"
+    val KEEP_FILES = setOf("encoder.int8.onnx", "decoder.onnx", "joiner.int8.onnx", "tokens.txt")
+    fun dir(context: Context) = File(context.filesDir, "asr-ru")
+    fun isInstalled(context: Context) = KEEP_FILES.all { File(dir(context), it).isFile }
+}
+
 /**
  * Owns the microphone. Listens for the wake word, then transcribes the command from the same
  * audio stream, so nothing is lost between "Hey Jarvis" and what follows. Everything runs on
@@ -60,6 +70,7 @@ class VoiceInput(private val context: Context, private val onWake: () -> Unit) {
     private val main = Handler(Looper.getMainLooper())
     @Volatile private var spotter: KeywordSpotter? = null
     @Volatile private var recognizer: OnlineRecognizer? = null
+    @Volatile private var loadedLanguage = ""
     @Volatile private var running = false
     /** Set by [release]; a model load still in progress must not bring the microphone back. */
     @Volatile private var released = false
@@ -165,7 +176,7 @@ class VoiceInput(private val context: Context, private val onWake: () -> Unit) {
     }
 
     /** Loads whichever models are installed. Calls [ready] on the main thread with an error message or null. */
-    fun load(ready: (error: String?) -> Unit) {
+    fun load(language: String = "en", ready: (error: String?) -> Unit) {
         if (released) return
         Thread {
             val errors = mutableListOf<String>()
@@ -195,38 +206,57 @@ class VoiceInput(private val context: Context, private val onWake: () -> Unit) {
                     errors += "The wake word couldn't start. Try downloading it again in Settings."
                 }
             }
-            if (recognizer == null && SpeechModel.isInstalled(context)) {
-                try {
-                    val dir = SpeechModel.dir(context)
-                    recognizer = OnlineRecognizer(
-                        config = OnlineRecognizerConfig(
-                            featConfig = FeatureConfig(sampleRate = SAMPLE_RATE, featureDim = 80),
-                            modelConfig = OnlineModelConfig(
-                                transducer = OnlineTransducerModelConfig(
-                                    encoder = File(dir, "encoder.onnx").absolutePath,
-                                    decoder = File(dir, "decoder.onnx").absolutePath,
-                                    joiner = File(dir, "joiner.onnx").absolutePath,
+            if (loadedLanguage != language) {
+                if (running) stop()
+                recognizer?.release()
+                recognizer = null
+                loadedLanguage = language
+            }
+            if (recognizer == null) {
+                val dir = when (language) {
+                    "ru" -> RussianSpeechModel.dir(context).takeIf { RussianSpeechModel.isInstalled(context) }
+                    "en" -> SpeechModel.dir(context).takeIf { SpeechModel.isInstalled(context) }
+                    else -> null
+                }
+                if (dir != null) {
+                    try {
+                        val russian = language == "ru"
+                        recognizer = OnlineRecognizer(
+                            config = OnlineRecognizerConfig(
+                                featConfig = FeatureConfig(sampleRate = SAMPLE_RATE, featureDim = 80),
+                                modelConfig = OnlineModelConfig(
+                                    transducer = OnlineTransducerModelConfig(
+                                        encoder = File(dir, if (russian) "encoder.int8.onnx" else "encoder.onnx").absolutePath,
+                                        decoder = File(dir, "decoder.onnx").absolutePath,
+                                        joiner = File(dir, if (russian) "joiner.int8.onnx" else "joiner.onnx").absolutePath,
+                                    ),
+                                    tokens = File(dir, "tokens.txt").absolutePath,
+                                    numThreads = 2,
+                                    modelType = if (russian) "zipformer2" else "",
                                 ),
-                                tokens = File(dir, "tokens.txt").absolutePath,
-                                numThreads = 2,
+                                enableEndpoint = true,
+                                endpointConfig = EndpointConfig(
+                                    rule1 = EndpointRule(false, 2.4f, 0f),
+                                    rule2 = EndpointRule(true, 1.2f, 0f),
+                                    rule3 = EndpointRule(false, 0f, 20f),
+                                ),
                             ),
-                            enableEndpoint = true,
-                            endpointConfig = EndpointConfig(
-                                rule1 = EndpointRule(false, 2.4f, 0f),
-                                rule2 = EndpointRule(true, 1.2f, 0f),
-                                rule3 = EndpointRule(false, 0f, 20f),
-                            ),
-                        ),
-                    )
-                } catch (e: Throwable) {
-                    Log.e(TAG, "speech model failed to load", e)
-                    errors += "Offline speech recognition couldn't start; using Google's instead."
+                        )
+                    } catch (e: Throwable) {
+                        Log.e(TAG, "$language speech model failed to load", e)
+                        errors += if (language == "ru") {
+                            "Не удалось загрузить офлайн-распознавание русского языка; будет использован сервис Android."
+                        } else {
+                            "Offline speech recognition couldn't start; using Google's instead."
+                        }
+                    }
                 }
             }
             if (released) {
                 // Turned off while loading: free what was just loaded and stay quiet.
                 spotter?.release(); spotter = null
                 recognizer?.release(); recognizer = null
+                loadedLanguage = ""
                 return@Thread
             }
             main.post { if (!released) ready(errors.firstOrNull()) }
@@ -255,6 +285,7 @@ class VoiceInput(private val context: Context, private val onWake: () -> Unit) {
         cancelCommand()
         spotter?.release(); spotter = null
         recognizer?.release(); recognizer = null
+        loadedLanguage = ""
     }
 
     /**
@@ -573,7 +604,7 @@ class VoiceInput(private val context: Context, private val onWake: () -> Unit) {
         private const val MAX_BLOCKED_RESTARTS = 2   // after that, assume the phone really outputs digital silence
 
         /** Words that mean "be quiet" when said over Jarvis. */
-        val STOP_WORDS = setOf("stop", "wait", "cancel", "quiet", "enough", "pause", "hold", "shush")
+        val STOP_WORDS = setOf("stop", "wait", "cancel", "quiet", "enough", "pause", "hold", "shush", "стоп", "хватит", "отмена", "прекрати")
 
         /** Lower-case words, letters and apostrophes only. */
         fun words(text: String): List<String> =
@@ -617,7 +648,8 @@ class VoiceInput(private val context: Context, private val onWake: () -> Unit) {
         fun isStopCommand(text: String): Boolean {
             val t = words(text).joinToString(" ")
             return t in setOf("stop", "stop it", "stop that", "stop talking", "cancel", "cancel that", "never mind", "nevermind",
-                "shut up", "be quiet", "quiet", "enough", "that's enough", "thats enough", "okay stop", "ok stop", "wait", "hold on", "no stop")
+                "shut up", "be quiet", "quiet", "enough", "that's enough", "thats enough", "okay stop", "ok stop", "wait", "hold on", "no stop",
+                "стоп", "остановись", "останови", "хватит", "замолчи", "отмена", "отмени", "прекрати", "перестань")
         }
         private const val MIN_SPEECH_LEVEL = 0.02f
 

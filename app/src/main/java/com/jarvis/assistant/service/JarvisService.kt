@@ -179,7 +179,7 @@ class JarvisService : Service() {
                 stopSpeaking()
                 state = State.IDLE
                 island { it.hide() }
-                update("Cancelled")
+                update(if (settings.speechLanguage == "ru") "Отменено" else "Cancelled")
                 if (settings.switchedOn) {
                     resumeListening()
                 }
@@ -193,7 +193,7 @@ class JarvisService : Service() {
             ACTION_WAKE_SETTINGS -> {
                 voice.customWakePhrase = settings.customWakePhrase
                 if (state == State.IDLE && voice.hasWakeWord && settings.wakeWordEnabled) {
-                    update("Say \"${settings.wakePromptPhrase}\"")
+                    update(if (settings.speechLanguage == "ru") "Скажи «${settings.wakePromptPhrase}»" else "Say \"${settings.wakePromptPhrase}\"")
                 }
             }
             ACTION_LISTEN -> if (state == State.IDLE) onWakeWord()
@@ -221,9 +221,9 @@ class JarvisService : Service() {
     private fun onRuntimeStatus(s: EmbeddedRuntime.Status) {
         if (destroyed || state != State.IDLE) return
         when (s.phase) {
-            EmbeddedRuntime.Phase.DOWNLOADING -> update("Downloading the on-device model… ${if (s.percent >= 0) "${s.percent}%" else s.detail}")
+            EmbeddedRuntime.Phase.DOWNLOADING -> update(if (settings.speechLanguage == "ru") "Скачиваю модель на устройство… ${if (s.percent >= 0) "${s.percent}%" else s.detail}" else "Downloading the on-device model… ${if (s.percent >= 0) "${s.percent}%" else s.detail}")
             EmbeddedRuntime.Phase.FAILED, EmbeddedRuntime.Phase.NO_MODEL -> if (s.detail.isNotBlank()) update(s.detail)
-            EmbeddedRuntime.Phase.STOPPED -> if (runtime.hasModel()) update("On-device model ready. Say \"${settings.wakePromptPhrase}\"")
+            EmbeddedRuntime.Phase.STOPPED -> if (runtime.hasModel()) update(if (settings.speechLanguage == "ru") "Модель на устройстве готова. Скажи «${settings.wakePromptPhrase}»" else "On-device model ready. Say \"${settings.wakePromptPhrase}\"")
             else -> Unit
         }
     }
@@ -231,9 +231,9 @@ class JarvisService : Service() {
     private fun onMicProblem(problem: String) {
         if (destroyed || state != State.IDLE) return
         when (problem) {
-            "ok" -> update("Say \"${settings.wakePromptPhrase}\"")
-            "blocked" -> update("Android is blocking the microphone. Open Jarvis once, then try again.")
-            else -> update("Microphone busy. Reconnecting…")
+            "ok" -> update(if (settings.speechLanguage == "ru") "Скажи «${settings.wakePromptPhrase}»" else "Say \"${settings.wakePromptPhrase}\"")
+            "blocked" -> update(if (settings.speechLanguage == "ru") "Android блокирует микрофон. Открой Jarvis и попробуй ещё раз." else "Android is blocking the microphone. Open Jarvis once, then try again.")
+            else -> update(if (settings.speechLanguage == "ru") "Микрофон занят. Переподключаюсь…" else "Microphone busy. Reconnecting…")
         }
     }
 
@@ -366,7 +366,7 @@ class JarvisService : Service() {
      */
     private fun listen(promptIfQuiet: Boolean, followUp: Boolean = false, interrupted: Boolean = false) {
         state = State.LISTENING_COMMAND
-        update("Listening…")
+        update(if (settings.speechLanguage == "ru") "Слушаю…" else "Listening…")
         speaker.warmUp() // load the voice now, so the reply has no delay
         island { it.listening(if (useOfflineAsr) ({ voice.partialText }) else null, { voice.level }) }
         if (useOfflineAsr) {
@@ -389,12 +389,18 @@ class JarvisService : Service() {
     }
 
     /** What Jarvis says when woken and the user has not started speaking: the day's first greeting, otherwise "Yes?". */
-    private fun wakePrompt(): String = greeting.takeGreeting() ?: "Yes?"
+    private fun wakePrompt(): String =
+        if (settings.speechLanguage == "ru") greeting.takeGreeting("ru") ?: "Слушаю."
+        else greeting.takeGreeting() ?: "Yes?"
 
-    /** Offline English recognition, unless the user chose Hindi/Hinglish (then Google's recognizer is used). */
-    private val useOfflineAsr get() = voice.canTranscribe && settings.speechLanguage == "en"
+    /** English and Russian use downloaded offline models; Android recognition is the fallback. */
+    private val useOfflineAsr get() = voice.canTranscribe
 
-    private fun googleLanguage(): String? = if (settings.speechLanguage == "hi") "hi-IN" else null
+    private fun googleLanguage(): String? = when (settings.speechLanguage) {
+        "hi" -> "hi-IN"
+        "ru" -> "ru-RU"
+        else -> null
+    }
 
     private fun onHeard(text: String?, followUp: Boolean = false, interrupted: Boolean = false) {
         if (state != State.LISTENING_COMMAND) return
@@ -413,8 +419,9 @@ class JarvisService : Service() {
             }
             text.isNullOrBlank() -> {
                 state = State.IDLE
-                update("Didn't catch that")
-                say("Sorry, I didn't catch that.", interruptible = true) { island { it.hide() }; resumeListening() }
+                val missed = if (settings.speechLanguage == "ru") "Не расслышал. Повтори, пожалуйста." else "Sorry, I didn't catch that."
+                update(missed)
+                say(missed, interruptible = true) { island { it.hide() }; resumeListening() }
             }
             VoiceInput.isStopCommand(text) -> {
                 val said = cancelForeground()
@@ -435,7 +442,8 @@ class JarvisService : Service() {
         val t = task.lowercase()
         val patterns = listOf(
             Regex("""\b(open|launch|close|exit|switch to|go to|tap|click|press|scroll|swipe|type|enter|send|text|call|dial|hang up|answer|reject|play|pause|skip|next|previous|turn on|turn off|enable|disable|increase|decrease|raise|lower|volume|brightness|screenshot|lock|unlock|navigate|share|copy|paste|set alarm|set a reminder|set reminder|set timer|change wallpaper)\b"""),
-            Regex("""(kholo|khol do|band karo|bhejo|bhej do|call karo|phone karo|lagao|laga do|bajao|chalao|chala do|on karo|off karo|badha do|kam karo|ghata do|screenshot lo|photo lo|record karo|mute karo|unmute karo|silent kar do|alarm laga|reminder laga)""")
+            Regex("""(kholo|khol do|band karo|bhejo|bhej do|call karo|phone karo|lagao|laga do|bajao|chalao|chala do|on karo|off karo|badha do|kam karo|ghata do|screenshot lo|photo lo|record karo|mute karo|unmute karo|silent kar do|alarm laga|reminder laga)"""),
+            Regex("""(открой|запусти|закрой|переключи|нажми|прокрути|пролистай|введи|напиши|отправь|позвони|набери|сбрось|ответь|отклони|включи|выключи|увеличь|уменьши|громкость|яркость|скриншот|снимок экрана|заблокируй|разблокируй|поделись|скопируй|вставь|поставь будильник|установи таймер|напомни|поставь напоминание|сменить обои|сделай фото|включи фонарик|выключи фонарик)""")
         )
         return patterns.any { it.containsMatchIn(t) }
     }
@@ -479,7 +487,7 @@ class JarvisService : Service() {
 
             try {
                 main.post {
-                    if (!isStale(id) && !destroyed) update("Thinking with ${profile.name}…")
+                    if (!isStale(id) && !destroyed) update(if (settings.speechLanguage == "ru") "Обрабатываю запрос через ${profile.name}…" else "Thinking with ${profile.name}…")
                 }
 
                 // Notes the user asked Jarvis to keep go in the message, not the system prompt, so the system prompt stays cacheable.
@@ -633,7 +641,7 @@ class JarvisService : Service() {
         val fg = board.foreground()
         val moved = fg != null && board.moveToBackground(fg.id)
         if (moved) {
-            history.step(fg.id, "Moved to the background.")
+            history.step(fg.id, if (settings.speechLanguage == "ru") "Перенёс задачу в фон." else "Moved to the background.")
             cancelAck()
         }
         interruptedWork = false
@@ -642,10 +650,18 @@ class JarvisService : Service() {
             moved && then != null -> runTask(then)
             !moved && fg != null && then != null -> handleCancel(then) // a screen task cannot wait in the background: the new command replaces it
             else -> {
-                val msg = when {
-                    fg == null -> "Nothing is running."
-                    moved -> "Okay, I'll keep working on it in the background."
-                    else -> "That task is using the screen, so it can't run in the background. Say cancel to stop it."
+                val msg = if (settings.speechLanguage == "ru") {
+                    when {
+                        fg == null -> "Сейчас ничего не выполняется."
+                        moved -> "Хорошо, продолжу выполнять задачу в фоне."
+                        else -> "Эта задача требует экран, поэтому в фоне её выполнить нельзя. Скажи «отмена», чтобы остановить её."
+                    }
+                } else {
+                    when {
+                        fg == null -> "Nothing is running."
+                        moved -> "Okay, I'll keep working on it in the background."
+                        else -> "That task is using the screen, so it can't run in the background. Say cancel to stop it."
+                    }
                 }
                 if (moved || fg == null) { state = State.IDLE; island { it.hide() } }
                 else { state = State.WORKING; island { it.working(fg?.text ?: "") } }
@@ -665,7 +681,7 @@ class JarvisService : Service() {
             fg != null -> {
                 state = State.WORKING
                 island { it.working(fg.text) }
-                update("Working on: ${fg.text}")
+                update(if (settings.speechLanguage == "ru") "Выполняю: ${fg.text}" else "Working on: ${fg.text}")
             }
             else -> {
                 state = State.IDLE
@@ -739,7 +755,7 @@ class JarvisService : Service() {
         // This prevents accidental wake-word detections from cancelling a slow Qwen request.
         lastTask = task
         island { it.working(board.foreground()?.text ?: task) }
-        update("Working on: ${board.foreground()?.text ?: task}")
+        update(if (settings.speechLanguage == "ru") "Выполняю: ${board.foreground()?.text ?: task}" else "Working on: ${board.foreground()?.text ?: task}")
 
         // Instant paths first: what the user is teaching Jarvis, then simple phone commands. No language model involved,
         // so they work offline and finish in milliseconds.
@@ -777,14 +793,17 @@ class JarvisService : Service() {
                 trace.mark("acted")
                 if (outcome.irreversible) board.markIrreversible(id)
                 if (!outcome.handled) {
-                    history.step(id, "The direct command could not handle this request. Trying phone control.")
+                    history.step(id, if (settings.speechLanguage == "ru") "Простая команда не подошла. Передаю задачу голосовому помощнику." else "The direct command could not handle this request. Trying phone control.")
                     // Not something Jarvis can do directly (an app it cannot find, say): the model gets it, as it always did.
                     if (fast is FastCommand.OpenApp) failedApp = fast.query to SystemClock.elapsedRealtime()
                     main.post { if (!isStale(id) && !destroyed) runModelTask(task, id, TaskType.PHONE) }
                     return@execute
                 }
-                history.step(id, outcome.message)
-                val message = learnFromRetry(outcome)
+                val rawMessage = learnFromRetry(outcome)
+                val message = if (settings.speechLanguage == "ru") {
+                    RussianMessages.translate(rawMessage, outcome.success)
+                } else rawMessage
+                history.step(id, message)
                 main.post { deliver(task, id, AgentResult(outcome.success, message), keepInHistory = keep, via = "instant") }
             }
             return
@@ -850,7 +869,7 @@ class JarvisService : Service() {
         cancelAck()
         val r = Runnable {
             pendingAck = null
-            if (!destroyed && !isStale(id) && state == State.WORKING) say(acks.next())
+            if (!destroyed && !isStale(id) && state == State.WORKING) say(acks.next(settings.speechLanguage))
         }
         pendingAck = r
         main.postDelayed(r, ACK_DELAY_MS)
@@ -893,7 +912,7 @@ class JarvisService : Service() {
         streamerFor = null
         val streamed = streamer != null && streamer.spoken > 0
         // A streamed answer was already spoken piece by piece, so the greeting and notes are kept for the next reply.
-        val prefix = if (streamed) null else greeting.takePrefix()
+        val prefix = if (streamed) null else greeting.takePrefix(settings.speechLanguage)
         val note = if (streamed) null else pendingNote.also { pendingNote = null }
         val result = AgentResult(result0.success, listOfNotNull(prefix, note, result0.summary).joinToString(" "))
         lastResult = result.summary
@@ -925,7 +944,7 @@ class JarvisService : Service() {
             say(line, interruptible = true) { afterReply() }
             return
         }
-        if (settings.followUp && useOfflineAsr) listen(promptIfQuiet = false, followUp = true)
+        if (settings.followUp) listen(promptIfQuiet = false, followUp = true)
         else resumeListening()
     }
 
@@ -945,14 +964,14 @@ class JarvisService : Service() {
     private fun resumeListening() {
         if (destroyed || !settings.switchedOn || state != State.IDLE) return
         voice.echoCancellation = settings.interruptByTalking
-        voice.load { error ->
+        voice.load(settings.speechLanguage) { error ->
             if (destroyed || state != State.IDLE) return@load
             voice.wakeEnabled = settings.wakeWordEnabled
             when {
                 error != null -> update(error)
-                !settings.wakeWordEnabled -> { voice.stop(); update("Ready. Tap the mic to talk.") }
-                !voice.hasWakeWord -> update("Ready. Download the wake word in Settings to use \"${settings.wakePromptPhrase}\".")
-                else -> { voice.start(); update("Say \"${settings.wakePromptPhrase}\"") }
+                !settings.wakeWordEnabled -> { voice.stop(); update(if (settings.speechLanguage == "ru") "Готов. Нажми на микрофон, чтобы поговорить." else "Ready. Tap the mic to talk.") }
+                !voice.hasWakeWord -> update(if (settings.speechLanguage == "ru") "Скачай модель активации в настройках, чтобы использовать фразу «${settings.wakePromptPhrase}»." else "Ready. Download the wake word in Settings to use \"${settings.wakePromptPhrase}\".")
+                else -> { voice.start(); update(if (settings.speechLanguage == "ru") "Скажи «${settings.wakePromptPhrase}»" else "Say \"${settings.wakePromptPhrase}\"") }
             }
         }
     }
@@ -965,7 +984,7 @@ class JarvisService : Service() {
         val pm = getSystemService(PowerManager::class.java)
         pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP, "jarvis:wake")
             .acquire(3000)
-        speakAndWait("Please unlock your phone and I'll get started.")
+        speakAndWait(if (settings.speechLanguage == "ru") "Разблокируй телефон, и я продолжу." else "Please unlock your phone and I'll get started.")
         val deadline = System.currentTimeMillis() + 30_000
         while (keyguard.isKeyguardLocked && System.currentTimeMillis() < deadline && !isStale(id)) Thread.sleep(300)
     }
@@ -1035,7 +1054,7 @@ class JarvisService : Service() {
                     latch.countDown()
                     return@post
                 }
-                update("Asking: $question")
+                update(if (settings.speechLanguage == "ru") "Уточняю: $question" else "Asking: $question")
                 say(question) {
                     island { it.listening(if (useOfflineAsr) ({ voice.partialText }) else null, { voice.level }) }
                     val got: (String?) -> Unit = { text ->
@@ -1127,7 +1146,7 @@ class JarvisService : Service() {
         private const val TRIM_RUNNING_CRITICAL = 15 // ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL
 
         private const val CHAT_PROMPT = "You are Jarvis, a helpful Android phone assistant. " +
-            "Reply naturally and concisely in the user's language, including Hindi or Hinglish. " +
+            "Reply naturally and concisely in the user's language, including Russian, Hindi or Hinglish. " +
             "You are in conversation mode and cannot operate the phone in this mode. " +
             "Never claim you performed a phone action."
 

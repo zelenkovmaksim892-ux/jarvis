@@ -205,4 +205,25 @@ class FastCommandRouterTest {
         assertNull(FastCommandRouter.earlyAcceptDelayMs("set an alarm for 7"))
         assertNull(FastCommandRouter.earlyAcceptDelayMs("open"))
     }
+    @Test fun russianCommands() {
+        assertEquals(FastCommand.OpenApp("whatsapp"), p("открой WhatsApp"))
+        assertEquals(FastCommand.OpenCamera, p("открой камеру"))
+        assertEquals(FastCommand.SetMode(AiMode.OFFLINE), p("включи режим офлайн"))
+        assertEquals(FastCommand.SetLanguage("ru"), p("переключись на русский"))
+        assertEquals(FastCommand.Press("back"), p("назад"))
+        assertEquals(FastCommand.Press("home"), p("домой"))
+        assertEquals(FastCommand.Press("notifications"), p("покажи уведомления"))
+        assertEquals(FastCommand.Screenshot, p("сделай скриншот"))
+        assertEquals(FastCommand.LockScreen, p("заблокируй телефон"))
+        assertEquals(FastCommand.Flashlight(true), p("включи фонарик"))
+        assertEquals(FastCommand.Flashlight(false), p("выключи фонарик"))
+        assertEquals(FastCommand.Volume(VolumeChange.UP), p("громче"))
+        assertEquals(FastCommand.Volume(VolumeChange.DOWN), p("тише"))
+        assertEquals(FastCommand.Media(MediaAction.PLAY), p("включи музыку"))
+        assertEquals(FastCommand.Media(MediaAction.PAUSE), p("выключи музыку"))
+        assertEquals(FastCommand.Media(MediaAction.NEXT), p("следующий трек"))
+        assertEquals(FastCommand.SetTimer(300), p("поставь таймер на 5 минут"))
+        assertEquals(FastCommand.SetLanguage("ru"), p("говори по-русски"))
+    }
+
 }

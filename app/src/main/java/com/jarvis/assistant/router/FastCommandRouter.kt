@@ -3,14 +3,14 @@ package com.jarvis.assistant.router
 import com.jarvis.assistant.ai.AiMode
 
 /**
- * The fast path: recognises simple phone commands in English, Hinglish and Devanagari Hindi so they run in
+ * The fast path: recognises simple phone commands in English, Hinglish, Hindi and Russian so they run in
  * milliseconds without a language model. Anything it does not recognise returns null and goes to the model as before.
  */
 object FastCommandRouter {
     private const val MAX_WORDS = 12
 
-    private val MODE = Regex("""^(?:go |switch to |switch |use |set |turn on )?(offline|online|auto|automatic)(?: mode)?(?: on| karo| kar do| kar de| chalu karo)?$""")
-    private val LANG = Regex("""^(?:please )?(?:(?:speak|listen|talk|understand|reply|bolo|suno|samjho)(?: to me)?(?: in| me| mein)? )?(hindi|hinglish|english)(?: mode)?(?: me| mein| on| karo| kar do| suno| samjho| bolo)*$""")
+    private val MODE = Regex("""^(?:go |switch to |switch |use |set |turn on |enable )?(?:mode )?(offline|online|auto|automatic)(?: mode)?(?: on| karo| kar do| kar de| chalu karo)?$""")
+    private val LANG = Regex("""^(?:please )?(?:(?:speak|listen|talk|understand|reply|switch|set|bolo|suno|samjho)(?: to me)?(?: in| to| me| mein)? )?(hindi|hinglish|english|russian)(?: mode)?(?: me| mein| on| karo| kar do| suno| samjho| bolo)*$""")
 
     private val BACK = Regex("""^(?:go |press |navigate |take me )?back(?: button| karo| kar do| jao| chalo| ja)?$|^(?:peeche|piche|wapas|vapas)(?: jao| ja| chalo| karo| kar do)?$""")
     private val HOME = Regex("""^(?:go |press |take me |navigate |show )?(?:to )?(?:the )?home(?: screen| button| page)?(?: par| pe)?(?: jao| ja| chalo| karo| kar do| dikhao)?$""")
@@ -32,8 +32,8 @@ object FastCommandRouter {
 
     private val MUSIC_WORDS = setOf("music", "song", "songs", "gaana", "gana", "gaane", "audio", "track", "tune")
     private val MEDIA_FILLER = setOf("the", "some", "my", "karo", "kar", "do", "de", "ek", "ko")
-    private val PLAY_WORDS = setOf("play", "resume", "start", "bajao", "baja", "chalao", "chala", "laga", "lagao", "shuru")
-    private val PAUSE_WORDS = setOf("pause", "stop", "roko", "ruko", "band", "rok")
+    private val PLAY_WORDS = setOf("play", "resume", "start", "enable", "bajao", "baja", "chalao", "chala", "laga", "lagao", "shuru")
+    private val PAUSE_WORDS = setOf("pause", "stop", "disable", "roko", "ruko", "band", "rok")
     private val NEXT_WORDS = setOf("next", "skip", "agla", "agle", "aage")
     private val PREV_WORDS = setOf("previous", "prev", "pichla", "pichle", "pichhla", "last")
 
@@ -134,7 +134,13 @@ object FastCommandRouter {
     private fun language(t: String, words: List<String>): FastCommand? {
         val m = LANG.matchEntire(t) ?: return null
         if (words.size == 1) return null
-        return FastCommand.SetLanguage(if (m.groupValues[1] == "english") "en" else "hi")
+        return FastCommand.SetLanguage(
+            when (m.groupValues[1]) {
+                "english" -> "en"
+                "russian" -> "ru"
+                else -> "hi"
+            },
+        )
     }
 
     private fun press(t: String): FastCommand? = when {

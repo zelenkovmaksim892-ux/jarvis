@@ -71,6 +71,7 @@ class CrashSafetyTest {
     @Test
     fun kokoroFailingFallsBackAndStillFinishesSpeaking() {
         fakeInstall(Kokoro.modelDir(ctx), listOf("voices.bin", "model.int8.onnx", "tokens.txt"))
+        Settings(ctx).speechLanguage = "en" // This test specifically exercises the English Kokoro fallback.
         val speaker = Speaker(ctx)
         assertTrue(speaker.usingKokoro)
         var done = false

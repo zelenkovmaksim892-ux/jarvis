@@ -51,6 +51,24 @@ object ModelDownloader {
     internal fun prune(dir: File, keep: Set<String>) =
         dir.walkBottomUp().filter { it != dir && it.name !in keep }.forEach { it.delete() }
 
+    /** Offline Russian speech recognition model (about 24 MB). */
+    fun downloadRussianSpeech(context: Context, progress: (Int) -> Unit) {
+        download(
+            context, RussianSpeechModel.URL, RussianSpeechModel.dir(context), progress, ::openTarBz2,
+            expectedSize = RussianSpeechModel.ARCHIVE_SIZE,
+            expectedSha256 = RussianSpeechModel.ARCHIVE_SHA256,
+        )
+        prune(RussianSpeechModel.dir(context), RussianSpeechModel.KEEP_FILES)
+    }
+
+    /** Offline Russian Piper voice (about 67 MB). */
+    fun downloadRussianVoice(context: Context, progress: (Int) -> Unit) =
+        download(
+            context, RussianVoice.MODEL_URL, RussianVoice.modelDir(context), progress, ::openTarBz2,
+            expectedSize = RussianVoice.ARCHIVE_SIZE,
+            expectedSha256 = RussianVoice.ARCHIVE_SHA256,
+        )
+
     /** The ~100 MB Kokoro voice. */
     fun downloadKokoro(context: Context, progress: (Int) -> Unit) =
         download(

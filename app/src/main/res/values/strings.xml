@@ -73,6 +73,7 @@
     <string name="speaking_ellipsis">Speaking…</string>
     <string name="kokoro_slow">On this phone Kokoro takes %1$.1f seconds to make each second of speech, so it pauses between phrases. A cloud voice or the phone\'s own voice won\'t pause.</string>
     <string name="played_backup">%1$s\nPlayed the backup voice instead.</string>
+    <string name="ru_voice_problem">Russian voice problem: %1$s</string>
     <string name="kokoro_problem">Kokoro problem: %1$s</string>
     <string name="openai_key_hint">Get a key at platform.openai.com → API keys. If you\'ve added an OpenAI model, its key is used automatically.</string>
     <string name="openai_voice_hint">alloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer or verse</string>
@@ -99,6 +100,7 @@
     <string name="mode_offline">Offline</string>
     <string name="lang_en">English · offline</string>
     <string name="lang_hi">Hindi / Hinglish · Google</string>
+    <string name="lang_ru">Russian · offline recognition</string>
     <string name="runtime_unsupported">This build has no on-device runtime. The model in Termux or your cloud models are used instead.</string>
     <string name="runtime_downloading_percent">Downloading the on-device model: %1$d%% (%2$s)</string>
     <string name="runtime_downloading">Downloading the on-device model… (%1$s)</string>
@@ -117,6 +119,7 @@
     <string name="mode_online_hint">Cloud models first, the on-phone model if the internet is down.</string>
     <string name="mode_offline_hint">Only the on-phone model answers. Nothing leaves your phone.</string>
     <string name="lang_hi_hint">Uses Google speech recognition (needs the Google app; it may use the internet). Wake word still works offline. Replies are spoken in English.</string>
+    <string name="lang_ru_hint">After downloading the Russian speech and voice models, commands are recognized and spoken offline. The wake phrase remains “Hey Jarvis”.</string>
     <string name="lang_en_hint">Offline recognition on your phone. English only.</string>
     <string name="models_title">Models</string>
     <string name="models_intro">Jarvis uses your primary model (★). Tap a model to edit it or make it primary.</string>
