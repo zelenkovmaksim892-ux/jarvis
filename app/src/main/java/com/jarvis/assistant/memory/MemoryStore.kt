@@ -154,7 +154,7 @@ class MemoryStore private constructor(context: Context) :
         ftsPut(db, id, clean)
     }
 
-    /** Notes about how to answer (short answers, language), always sent along with a request. */
+    /** Notes about how to answer (short answers, language). Included only when memory sharing is permitted. */
     fun styleFacts(limit: Int = 5): List<MemoryFact> =
         readFacts("SELECT id, text, style FROM fact WHERE style = 1 ORDER BY updated DESC LIMIT ?", arrayOf(limit.toString()))
 
@@ -180,14 +180,14 @@ class MemoryStore private constructor(context: Context) :
     }
 
     /**
-     * The memory block for a prompt. Style notes always go in. Other notes go only to models running on the phone,
-     * unless [shareWithCloud] is on.
+     * The memory block for a prompt. No saved memory is sent to a cloud model unless the person opts in.
      */
     fun promptContext(task: String, toLocal: Boolean, shareWithCloud: Boolean): String {
-        val style = styleFacts()
         val shareable = toLocal || shareWithCloud
-        val relevant = if (shareable) search(task) else emptyList()
-        val tasks = if (shareable) relatedTasks(task) else emptyList()
+        if (!shareable) return ""
+        val style = styleFacts()
+        val relevant = search(task)
+        val tasks = relatedTasks(task)
         return MemoryPrompt.build(style, relevant, tasks)
     }
 
