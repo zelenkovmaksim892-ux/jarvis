@@ -4,6 +4,7 @@ import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.net.HttpURLConnection
+import java.net.InetAddress
 import java.net.URI
 import java.net.URL
 import java.security.MessageDigest
@@ -128,15 +129,16 @@ class GgufDownloader(
         var current = target
         val initialUri = runCatching { URI(target) }.getOrElse { throw IOException("Invalid download URL") }
         val startedHttps = initialUri.scheme.equals("https", ignoreCase = true)
+        val initialHost = initialUri.host?.lowercase() ?: throw IOException("Download URL has no host")
         repeat(MAX_REDIRECTS) {
             val uri = runCatching { URI(current) }.getOrElse { throw IOException("Invalid redirect URL") }
             val u = runCatching { URL(current) }.getOrElse { throw IOException("Invalid redirect URL") }
             val local = u.host == "localhost" || u.host == "127.0.0.1" || u.host == "::1"
             val secureScheme = uri.scheme.equals("https", ignoreCase = true)
             val localHttp = uri.scheme.equals("http", ignoreCase = true) && local && !startedHttps
-            if (uri.userInfo != null || uri.fragment != null || (!secureScheme && !localHttp)) {
-                throw IOException("Refusing an unsafe download redirect or non-HTTPS address")
-            }
+            if (uri.userInfo != null || uri.fragment != null || (!secureScheme && !localHttp) ||
+                !isAllowedRedirectHost(u.host, initialHost) || !isSafeResolvedDestination(u.host, localHttp)
+            ) throw IOException("Refusing an unsafe download redirect, untrusted host, or non-public destination")
             val c = u.openConnection() as? HttpURLConnection ?: throw IOException("Unsupported download protocol")
             c.instanceFollowRedirects = false
             c.connectTimeout = connectTimeoutMs
@@ -148,8 +150,10 @@ class GgufDownloader(
             if (code in intArrayOf(301, 302, 303, 307, 308)) {
                 val next = c.getHeaderField("Location") ?: throw IOException("Redirect without a location")
                 val resolved = URI(current).resolve(next)
-                if (resolved.userInfo != null || resolved.fragment != null ||
-                    (startedHttps && !resolved.scheme.equals("https", ignoreCase = true))
+                val nextHost = resolved.host?.lowercase()
+                if (resolved.userInfo != null || resolved.fragment != null || nextHost.isNullOrBlank() ||
+                    (startedHttps && !resolved.scheme.equals("https", ignoreCase = true)) ||
+                    !isAllowedRedirectHost(nextHost, initialHost)
                 ) {
                     c.disconnect()
                     throw IOException("Refusing a downgrade or credential-bearing redirect")
@@ -161,6 +165,27 @@ class GgufDownloader(
             return c
         }
         throw IOException("Too many redirects")
+    }
+
+    private fun isAllowedRedirectHost(host: String, initialHost: String): Boolean {
+        val normalized = host.lowercase().trimEnd('.')
+        if (normalized == initialHost) return true
+        return normalized == "huggingface.co" || normalized.endsWith(".huggingface.co") ||
+            normalized == "hf.co" || normalized.endsWith(".hf.co")
+    }
+
+    /** Reject private/reserved DNS destinations for remote HTTPS downloads; loopback is allowed only for local HTTP tests. */
+    private fun isSafeResolvedDestination(host: String, localHttp: Boolean): Boolean {
+        val literalLoopback = host == "localhost" || host == "127.0.0.1" || host == "::1"
+        if (localHttp) return literalLoopback
+        if (literalLoopback) return false
+        val addresses = runCatching { InetAddress.getAllByName(host) }.getOrElse { throw IOException("Download host could not be resolved") }
+        if (addresses.isEmpty()) return false
+        return addresses.all { address ->
+            !address.isAnyLocalAddress && !address.isLoopbackAddress && !address.isLinkLocalAddress &&
+                !address.isSiteLocalAddress && !address.isMulticastAddress &&
+                !(address is java.net.Inet6Address && ((address.address[0].toInt() and 0xfe) == 0xfc))
+        }
     }
 
     /** HEAD without following the first redirect: Hugging Face puts the file's size and SHA-256 on that response. */
