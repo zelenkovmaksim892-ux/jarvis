@@ -962,8 +962,8 @@ class JarvisService : Service() {
             when {
                 error != null -> update(error)
                 !settings.wakeWordEnabled -> { voice.stop(); update(if (settings.speechLanguage == "ru") "Готов. Нажми на микрофон, чтобы поговорить." else "Ready. Tap the mic to talk.") }
-                !voice.hasWakeWord -> update("Ready. Download the wake word in Settings to use \"${settings.wakePromptPhrase}\".")
-                else -> { voice.start(); update("Say \"${settings.wakePromptPhrase}\"") }
+                !voice.hasWakeWord -> update(if (settings.speechLanguage == "ru") "Скачай модель активации в настройках, чтобы использовать фразу «${settings.wakePromptPhrase}»." else "Ready. Download the wake word in Settings to use \"${settings.wakePromptPhrase}\".")
+                else -> { voice.start(); update(if (settings.speechLanguage == "ru") "Скажи «${settings.wakePromptPhrase}»" else "Say \"${settings.wakePromptPhrase}\"") }
             }
         }
     }
