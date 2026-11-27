@@ -154,6 +154,10 @@
     <string name="test_ok">✓ Connected. %1$s replied: “%2$s”</string>
     <string name="delete_model_title">Delete %1$s?</string>
     <string name="delete_model_message">Jarvis will stop using this model.</string>
+    <string name="help_deepseek">Нужен ключ API DeepSeek. Используется совместимый интерфейс OpenAI; модель и тариф зависят от вашего аккаунта.</string>
+    <string name="help_qwen">Нужен ключ Alibaba Cloud Model Studio. Международный адрес уже указан; если ключ создан для другого региона или рабочего пространства, адрес нужно заменить на выданный провайдером.</string>
+    <string name="help_glm">Нужен ключ платформы BigModel (Zhipu). Используется общий API-адрес, не адрес специального тарифного плана для программирования.</string>
+    <string name="help_kimi">Нужен ключ Moonshot/Kimi. Международный адрес API уже указан; ключ и доступные модели зависят от платформы, на которой создан аккаунт.</string>
     <string name="help_anthropic">Get an API key at console.anthropic.com → API Keys. Low effort makes phone tasks noticeably faster.</string>
     <string name="help_openai">Get an API key at platform.openai.com → API keys. Use any model that supports tool calling.</string>
     <string name="help_lmstudio">On your computer: open LM Studio → Developer → start the server and turn on \"Serve on Local Network\". Enter your computer\'s IP address below and load a model that supports tool calling (e.g. Qwen).</string>
