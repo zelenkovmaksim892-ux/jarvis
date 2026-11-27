@@ -155,7 +155,7 @@ class JarvisService : Service() {
         createChannel()
         try {
             ServiceCompat.startForeground(
-                this, NOTIFICATION_ID, notification("Starting…"),
+                this, NOTIFICATION_ID, notification("Запуск…"),
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
             )
         } catch (e: Exception) {
@@ -179,7 +179,7 @@ class JarvisService : Service() {
                 stopSpeaking()
                 state = State.IDLE
                 island { it.hide() }
-                update("Cancelled")
+                update("Отменено")
                 if (settings.switchedOn) {
                     resumeListening()
                 }
@@ -351,7 +351,7 @@ class JarvisService : Service() {
             state = State.IDLE
             voice.cancelCommand()
             island { it.hide() }
-            update(said ?: "Okay")
+            update(said ?: "Хорошо")
             resumeListening()
         } else {
             // Talking over Jarvis: stop the speech and listen. A running task is only replaced if a command follows.
@@ -389,7 +389,7 @@ class JarvisService : Service() {
     }
 
     /** What Jarvis says when woken and the user has not started speaking: the day's first greeting, otherwise "Yes?". */
-    private fun wakePrompt(): String = greeting.takeGreeting() ?: "Yes?"
+    private fun wakePrompt(): String = greeting.takeGreeting() ?: "Да?"
 
     /** Russian and Hindi use Android's language-specific recognizer; English can use the bundled offline model. */
     private val useOfflineAsr get() = voice.canTranscribe && settings.speechLanguage == "en"
@@ -417,8 +417,8 @@ class JarvisService : Service() {
             }
             text.isNullOrBlank() -> {
                 state = State.IDLE
-                update("Didn't catch that")
-                say("Sorry, I didn't catch that.", interruptible = true) { island { it.hide() }; resumeListening() }
+                update("Не расслышал команду")
+                say("Не расслышал команду. Повторите, пожалуйста.", interruptible = true) { island { it.hide() }; resumeListening() }
             }
             VoiceInput.isStopCommand(text) -> {
                 val said = cancelForeground()
