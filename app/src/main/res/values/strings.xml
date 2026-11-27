@@ -97,6 +97,7 @@
     <string name="mode_auto">Auto</string>
     <string name="mode_online">Online</string>
     <string name="mode_offline">Offline</string>
+    <string name="lang_ru">Русский · распознавание Android</string>
     <string name="lang_en">English · offline</string>
     <string name="lang_hi">Hindi / Hinglish · Google</string>
     <string name="runtime_unsupported">This build has no on-device runtime. The model in Termux or your cloud models are used instead.</string>
@@ -116,6 +117,7 @@
     <string name="mode_auto_hint">Short, simple questions use the model on your phone. Hard, current-events or Hindi questions use your cloud models when the internet works.</string>
     <string name="mode_online_hint">Cloud models first, the on-phone model if the internet is down.</string>
     <string name="mode_offline_hint">Only the on-phone model answers. Nothing leaves your phone.</string>
+    <string name="lang_ru_hint">Распознавание русской речи через службу распознавания Android. Обычно требуется интернет или установленный офлайн-пакет русского языка. Фраза вызова работает отдельно.</string>
     <string name="lang_hi_hint">Uses Google speech recognition (needs the Google app; it may use the internet). Wake word still works offline. Replies are spoken in English.</string>
     <string name="lang_en_hint">Offline recognition on your phone. English only.</string>
     <string name="models_title">Models</string>
