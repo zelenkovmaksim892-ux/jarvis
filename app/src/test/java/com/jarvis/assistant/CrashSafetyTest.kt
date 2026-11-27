@@ -71,6 +71,8 @@ class CrashSafetyTest {
     @Test
     fun kokoroFailingFallsBackAndStillFinishesSpeaking() {
         fakeInstall(Kokoro.modelDir(ctx), listOf("voices.bin", "model.int8.onnx", "tokens.txt"))
+        // Russian installs now default to Android TTS; select Kokoro explicitly for this fallback test.
+        Settings(ctx).voiceEngine = "kokoro"
         val speaker = Speaker(ctx)
         assertTrue(speaker.usingKokoro)
         var done = false
