@@ -24,6 +24,10 @@ data class ProviderPreset(
 val PROVIDERS = listOf(
     ProviderPreset("anthropic", "Claude (Anthropic)", ApiKind.ANTHROPIC, "https://api.anthropic.com", "claude-opus-5-5", true),
     ProviderPreset("openai", "OpenAI", ApiKind.OPENAI_COMPATIBLE, "https://api.openai.com/v1", "gpt-5", true),
+    ProviderPreset("deepseek", "DeepSeek", ApiKind.OPENAI_COMPATIBLE, "https://api.deepseek.com", "deepseek-flash", true),
+    ProviderPreset("qwen", "Qwen (Alibaba)", ApiKind.OPENAI_COMPATIBLE, "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", "qwen-plus", true),
+    ProviderPreset("glm", "GLM (Zhipu)", ApiKind.OPENAI_COMPATIBLE, "https://open.bigmodel.cn/api/paas/v4", "glm-5.2", true),
+    ProviderPreset("kimi", "Kimi (Moonshot)", ApiKind.OPENAI_COMPATIBLE, "https://api.moonshot.ai/v1", "kimi-k2.5", true),
     ProviderPreset("lmstudio", "LM Studio (local)", ApiKind.OPENAI_COMPATIBLE, "http://127.0.0.1:1234/v1", "local-model", false),
     ProviderPreset("ollama", "Ollama (local)", ApiKind.OPENAI_COMPATIBLE, "http://127.0.0.1:11434/v1", "qwen2.5:14b", false),
     ProviderPreset("openrouter", "OpenRouter", ApiKind.OPENAI_COMPATIBLE, "https://openrouter.ai/api/v1", "anthropic/claude-opus-5-5", true),
@@ -31,7 +35,6 @@ val PROVIDERS = listOf(
     ProviderPreset("groq", "Groq", ApiKind.OPENAI_COMPATIBLE, "https://api.groq.com/openai/v1", "llama-3.3-70b-versatile", true),
     ProviderPreset("custom", "Custom (OpenAI-compatible)", ApiKind.OPENAI_COMPATIBLE, "http://localhost:8080/v1", "", false),
 )
-
 /** A model the user has saved. Several can exist; one is primary, the rest are fallbacks in order. */
 data class ModelProfile(
     val id: String = UUID.randomUUID().toString(),
