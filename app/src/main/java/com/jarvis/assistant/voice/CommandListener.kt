@@ -18,8 +18,8 @@ class CommandListener(private val context: Context) {
     fun listen(onResult: (String?) -> Unit) = listen(null, onResult)
 
     /**
-     * [language] is a BCP-47 tag such as "hi-IN". Google's Hindi recognizer also understands Hinglish (English words
-     * inside Hindi sentences) and may answer in Devanagari or Roman letters; the command router accepts both.
+     * [language] is a BCP-47 tag such as "ru-RU" or "hi-IN". The selected language is passed explicitly
+     * to Android's speech service so recognition does not silently fall back to the device default.
      */
     fun listen(language: String?, onResult: (String?) -> Unit) {
         cancel()
