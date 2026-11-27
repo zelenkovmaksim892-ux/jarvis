@@ -123,7 +123,7 @@
     <string name="models_title">Нейросети</string>
     <string name="models_intro">Джарвис использует основную нейросеть (★). Нажмите на модель, чтобы изменить её или назначить основной.</string>
     <string name="no_models">Нейросети ещё не добавлены</string>
-    <string name="no_models_hint">Добавьте Claude, OpenAI или модель на своём компьютере через LM Studio либо Ollama.</string>
+    <string name="no_models_hint">Добавьте Claude, OpenAI, DeepSeek, Qwen, GLM, Kimi или локальную модель через LM Studio либо Ollama.</string>
     <string name="add_model">Добавить нейросеть</string>
     <string name="use_backup_models">Использовать запасные нейросети</string>
     <string name="backup_models_hint">Если основная модель недоступна (нет интернета, закончился баланс или сервер не отвечает), Джарвис попробует остальные по порядку.</string>
