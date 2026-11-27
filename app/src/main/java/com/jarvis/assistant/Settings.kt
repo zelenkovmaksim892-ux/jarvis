@@ -358,10 +358,10 @@ class Settings(context: Context) {
         get() = AiMode.parse(prefs.getString("ai_mode", null))
         set(v) = prefs.edit().putString("ai_mode", v.name).apply()
 
-    /** "en" = offline English recognizer; "hi" = Google recognizer in Hindi (also understands Hinglish). */
+    /** "ru" and "hi" use Android's online speech recognizer; "en" uses the bundled offline English model. */
     var speechLanguage: String
-        get() = prefs.getString("speech_lang", "en") ?: "en"
-        set(v) = prefs.edit().putString("speech_lang", if (v == "hi") "hi" else "en").apply()
+        get() = prefs.getString("speech_lang", "ru") ?: "ru"
+        set(v) = prefs.edit().putString("speech_lang", v.takeIf { it in setOf("ru", "hi", "en") } ?: "ru").apply()
 
     /** Ask before placing calls or sending messages. */
     var confirmSensitive: Boolean
