@@ -152,6 +152,10 @@ class ModelEditActivity : AppCompatActivity() {
             "xhigh" to R.string.effort_xhigh, "max" to R.string.effort_max,
         )
         private val HINTS = mapOf(
+            "deepseek" to R.string.help_deepseek,
+            "qwen" to R.string.help_qwen,
+            "glm" to R.string.help_glm,
+            "kimi" to R.string.help_kimi,
             "anthropic" to R.string.help_anthropic,
             "openai" to R.string.help_openai,
             "lmstudio" to R.string.help_lmstudio,
