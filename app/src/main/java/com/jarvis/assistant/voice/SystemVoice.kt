@@ -5,6 +5,8 @@ import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import com.jarvis.assistant.Settings
+import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -20,6 +22,14 @@ class SystemVoice(context: Context) : VoiceEngine {
         main.post {
             initDone = true
             ready = status == TextToSpeech.SUCCESS
+            if (ready) {
+                val tag = when (Settings(context).speechLanguage) {
+                    "hi" -> "hi-IN"
+                    "en" -> "en-US"
+                    else -> "ru-RU"
+                }
+                tts.language = Locale.forLanguageTag(tag)
+            }
             queued.forEach { (t, cb) -> if (ready) speak(t, cb) else cb() }
             queued.clear()
         }
