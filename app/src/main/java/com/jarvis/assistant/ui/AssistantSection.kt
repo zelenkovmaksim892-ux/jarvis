@@ -41,6 +41,7 @@ object AssistantSection {
 
         val langChips = view.findViewById<ChipGroup>(R.id.speechLangChips)
         val langHint = view.findViewById<TextView>(R.id.speechLangHint)
+        langChips.addChoice(context.getString(R.string.lang_ru), "ru")
         langChips.addChoice(context.getString(R.string.lang_en), "en")
         langChips.addChoice(context.getString(R.string.lang_hi), "hi")
         langChips.select(settings.speechLanguage)
@@ -152,5 +153,9 @@ object AssistantSection {
     }
 
     private fun langText(lang: String) =
-        if (lang == "hi") R.string.lang_hi_hint else R.string.lang_en_hint
+        when (lang) {
+            "hi" -> R.string.lang_hi_hint
+            "en" -> R.string.lang_en_hint
+            else -> R.string.lang_ru_hint
+        }
 }
